@@ -11,6 +11,18 @@ import java.io.FileWriter;
 import java.sql.*;
 
 public class AjusteInventario extends JFrame {
+ private static AjusteInventario instanciaUnica = null;
+
+public static void mostrarVentana(String usuarioActual, String rolActual) {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new AjusteInventario(usuarioActual, rolActual);
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+
+
     private JTextField txtCodigo, txtCantidad;
     private JButton btnAplicar, btnHistorial, btnExportarTodo, btnExportarSeleccion, btnEliminar, btnSalir;
     private JTable tablaHistorial;
