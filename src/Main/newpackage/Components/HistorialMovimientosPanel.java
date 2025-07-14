@@ -35,7 +35,7 @@ public class HistorialMovimientosPanel extends JPanel {
         // Panel filtros
         JPanel panelFiltros = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
-        panelFiltros.add(new JLabel("Buscar producto (código o modelo):"));
+        panelFiltros.add(new JLabel("Buscar producto:"));
         txtBuscarProducto = new JTextField(20);
         panelFiltros.add(txtBuscarProducto);
 

@@ -14,6 +14,19 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class HistorialAjustes extends JFrame {
+    // --- INICIO: Singleton para evitar varias ventanas ---
+private static HistorialAjustes instanciaUnica = null;
+
+public static void mostrarVentana() {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new HistorialAjustes();
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+// --- FIN: Singleton ---
+
     private JTable tabla;
     private DefaultTableModel modelo;
 

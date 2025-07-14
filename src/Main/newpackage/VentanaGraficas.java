@@ -19,6 +19,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VentanaGraficas extends JFrame {
+    // --- INICIO: Singleton para evitar varias ventanas ---
+private static VentanaGraficas instanciaUnica = null;
+
+public static void mostrarVentana() {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new VentanaGraficas();
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+// --- FIN: Singleton ---
+
 
     private JComboBox<String> comboMes;
     private JButton btnMenosUsados, btnPieChart, btnLineChart, btnExportar, btnSalir, btnBarChart;

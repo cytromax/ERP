@@ -11,6 +11,19 @@ import java.util.List;
 import javax.swing.event.DocumentEvent;
 
 public class RecepcionMercancia extends JFrame {
+    // --- INICIO: Singleton para evitar varias ventanas ---
+private static RecepcionMercancia instanciaUnica = null;
+
+public static void mostrarVentana() {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new RecepcionMercancia();
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+// --- FIN ---
+
 
     private JTextField txtBuscarProducto, txtProveedor;
     private JTable tablaRecepcion;

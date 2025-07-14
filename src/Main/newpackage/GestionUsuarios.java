@@ -9,13 +9,15 @@ import java.awt.*;
 import java.sql.*;
 
 public class GestionUsuarios extends JFrame {
+     private static GestionUsuarios instanciaUnica = null;
     private JTextField txtCodigo, txtNombre, txtDepartamento, txtPuesto;
     private JTable tabla;
     private DefaultTableModel modelo;
     private String rolActual;
     private JLabel lblTotalEmp, lblTotalBec;
+    
 
-    public GestionUsuarios(String rolActual) {
+    private GestionUsuarios(String rolActual) {
         this.rolActual = rolActual;
         setTitle("Gestión de Empleados y Becarios");
         setSize(900, 440);
@@ -24,6 +26,8 @@ public class GestionUsuarios extends JFrame {
         initUI();
         cargarEmpleados();
     }
+   
+
 
     private void initUI() {
         // —— Formulario —— 
@@ -283,6 +287,15 @@ public class GestionUsuarios extends JFrame {
         String[] noms    = { modelo.getValueAt(filas[0],2).toString() };
         new MultiCodigoBarrasViewer(this, cods, noms).setVisible(true);
     }
+    public static void mostrarVentana(String rolActual) {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new GestionUsuarios(rolActual);
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+
 
     public static void main(String[] args){
         SwingUtilities.invokeLater(()-> new GestionUsuarios("administrador").setVisible(true));

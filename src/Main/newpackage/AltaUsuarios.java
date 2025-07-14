@@ -11,11 +11,14 @@ import java.util.Arrays;
 import java.util.List;
 
 public class AltaUsuarios extends JFrame {
+      private static AltaUsuarios instanciaUnica = null;
     private JComboBox<EmpleadoItem> comboEmpleado;
     private JTextField txtUsuario;
     private JPasswordField txtPassword;
     private JComboBox<String> comboRol;
     private JButton btnGenerarUsuario, btnGuardar;
+  
+
 
     static class EmpleadoItem {
         int id;
@@ -33,7 +36,7 @@ public class AltaUsuarios extends JFrame {
         }
     }
 
-    public AltaUsuarios() {
+    private AltaUsuarios() {
         setTitle("Alta de Usuarios del Sistema");
         setSize(480, 300);
         setLocationRelativeTo(null);
@@ -41,6 +44,14 @@ public class AltaUsuarios extends JFrame {
         initUI();
         cargarEmpleadosSinUsuario();
     }
+public static void mostrarVentana() {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new AltaUsuarios();
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
 
     private void initUI() {
         JPanel panel = new JPanel(new GridBagLayout());

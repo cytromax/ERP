@@ -73,19 +73,21 @@ public class PanelAlmacen extends JPanel {
         panelCentral.add(Box.createVerticalStrut(espaciado * 2));
 
         if (rol.equalsIgnoreCase("administrador")) {
-            panelCentral.add(crearBotonOscuro("Productos", font,
-                e -> new VerProductos(usuario, rol).setVisible(true)));
-            panelCentral.add(Box.createVerticalStrut(espaciado));
-            panelCentral.add(crearBotonOscuro("Administración de Empleados", font,
-                e -> new GestionUsuarios(rol).setVisible(true)));
-            panelCentral.add(Box.createVerticalStrut(espaciado));
-            panelCentral.add(crearBotonOscuro("Alta de Usuario", font,
-                e -> new AltaUsuarios().setVisible(true)));
-            panelCentral.add(Box.createVerticalStrut(espaciado));
-            panelCentral.add(crearBotonOscuro("Historial", font,
-                e -> new HistorialGeneralMovimientos(rol).setVisible(true)));
-            panelCentral.add(Box.createVerticalStrut(espaciado));
-        } else {
+    panelCentral.add(crearBotonOscuro("Productos", font,
+        e -> VerProductos.mostrarVentana(usuario, rol)
+    ));
+    panelCentral.add(Box.createVerticalStrut(espaciado));
+    panelCentral.add(crearBotonOscuro("Administración de Empleados", font,
+        e -> GestionUsuarios.mostrarVentana(rol)
+    ));
+    panelCentral.add(Box.createVerticalStrut(espaciado));
+    panelCentral.add(crearBotonOscuro("Alta de Usuario", font,
+        e -> AltaUsuarios.mostrarVentana()
+    ));
+    
+    panelCentral.add(Box.createVerticalStrut(espaciado));
+}
+else {
             JLabel label = new JLabel("Sin permisos para ver productos.", SwingConstants.CENTER);
             label.setForeground(new Color(190, 70, 70));
             label.setFont(new Font("Segoe UI", Font.PLAIN, 18));

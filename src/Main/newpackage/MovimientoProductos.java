@@ -11,6 +11,19 @@ import java.sql.*;
 import java.util.Vector;
 
 public class MovimientoProductos extends JFrame {
+    // --- INICIO: Singleton para evitar varias ventanas ---
+private static MovimientoProductos instanciaUnica = null;
+
+public static void mostrarVentana(String rol, String usuarioSesion) {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new MovimientoProductos(rol, usuarioSesion);
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+// --- FIN ---
+
 
     private JTextField txtBuscar;
     private JTable tablaBusqueda;

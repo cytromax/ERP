@@ -1,9 +1,8 @@
-package Main.newpackage;
+package Main.newpackage.Components;
 
 import conexion.ConexionDB;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
@@ -13,29 +12,27 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class HistorialEdicionProductos extends JFrame {
+public class HistorialEdicionesProductosPanel extends JPanel {
     private JTable tabla;
     private DefaultTableModel modelo;
 
     private JTextField txtBuscarProducto;
     private JSpinner spinnerFechaDesde;
     private JSpinner spinnerFechaHasta;
-    private JButton btnFiltrar, btnExportarTodo, btnExportarSeleccion, btnEliminarSeleccion, btnSalir;
+    private JButton btnFiltrar, btnExportarTodo, btnExportarSeleccion, btnEliminarSeleccion;
 
     private String rolActual;
+    private boolean puedeEliminar;
 
-    public HistorialEdicionProductos(String rolActual) {
+    public HistorialEdicionesProductosPanel(String rolActual, boolean puedeEliminar) {
         this.rolActual = rolActual;
+        this.puedeEliminar = puedeEliminar;
 
-        setTitle("Historial de Edición de Productos");
-        setSize(1000, 600);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // Panel filtros
         JPanel panelFiltros = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        panelFiltros.add(new JLabel("Buscar producto :"));
+        panelFiltros.add(new JLabel("Buscar producto:"));
         txtBuscarProducto = new JTextField(20);
         panelFiltros.add(txtBuscarProducto);
 
@@ -74,22 +71,19 @@ public class HistorialEdicionProductos extends JFrame {
         btnExportarTodo = new JButton("Exportar todo a Excel");
         btnExportarSeleccion = new JButton("Exportar selección a Excel");
         btnEliminarSeleccion = new JButton("Eliminar seleccionados");
-        btnSalir = new JButton("Salir");
 
         panelBotones.add(btnExportarTodo);
         panelBotones.add(btnExportarSeleccion);
-        panelBotones.add(btnEliminarSeleccion);
-        panelBotones.add(btnSalir);
+        if (puedeEliminar) panelBotones.add(btnEliminarSeleccion);
 
         add(panelBotones, BorderLayout.SOUTH);
 
         // Listeners
         btnExportarTodo.addActionListener(e -> exportarAExcel(false));
         btnExportarSeleccion.addActionListener(e -> exportarAExcel(true));
-        btnEliminarSeleccion.addActionListener(e -> eliminarSeleccionados());
-        btnSalir.addActionListener(e -> dispose());
+        if (puedeEliminar) btnEliminarSeleccion.addActionListener(e -> eliminarSeleccionados());
 
-        // Carga inicial sin filtro
+        // Carga inicial
         cargarHistorialFiltrado();
     }
 
@@ -138,7 +132,6 @@ public class HistorialEdicionProductos extends JFrame {
             ResultSet rs = ps.executeQuery();
 
             SimpleDateFormat formatoFecha = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-
             while (rs.next()) {
                 modelo.addRow(new Object[]{
                     rs.getInt("id"),

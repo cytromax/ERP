@@ -12,6 +12,19 @@ import java.util.List;
 import javax.swing.event.DocumentEvent;
 
 public class PrepararPedido extends JFrame {
+    // --- INICIO: Singleton para evitar varias ventanas ---
+private static PrepararPedido instanciaUnica = null;
+
+public static void mostrarVentana() {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new PrepararPedido();
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+// --- FIN ---
+
 
     private JTextField txtBuscarProducto;
     private EmpleadoScanField campoEmpleadoSolicitante;

@@ -7,6 +7,17 @@ import java.awt.*;
 import java.sql.*;
 
 public class EditarUsuarios extends JFrame {
+    private static EditarUsuarios instanciaUnica = null;
+
+    public static void mostrarVentana() {
+        if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+            instanciaUnica = new EditarUsuarios();
+        }
+        instanciaUnica.setVisible(true);
+        instanciaUnica.toFront();
+        instanciaUnica.requestFocus();
+    }
+
     private JTable tabla;
     private DefaultTableModel modelo;
     private JButton btnGuardarCambios, btnEliminarUsuario, btnCerrar;

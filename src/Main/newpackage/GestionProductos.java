@@ -6,6 +6,19 @@ import java.sql.*;
 import conexion.ConexionDB;
 
 public class GestionProductos extends JFrame {
+    // --- INICIO: Singleton para evitar varias ventanas ---
+private static GestionProductos instanciaUnica = null;
+
+public static void mostrarVentana() {
+    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+        instanciaUnica = new GestionProductos();
+    }
+    instanciaUnica.setVisible(true);
+    instanciaUnica.toFront();
+    instanciaUnica.requestFocus();
+}
+// --- FIN ---
+
     private JTextField txtCodigo, txtModelo, txtCantidad, txtUnidad;
     private JButton btnAgregar;
 

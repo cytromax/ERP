@@ -22,7 +22,27 @@ public class VerProductos extends JFrame {
     private String rolActual;
     private JTextField txtBuscar;
 
-    public VerProductos(String usuarioActual, String rolActual) {
+    // --- SINGLETON: Instancia única por usuario/rol ---
+    private static VerProductos instanciaUnica = null;
+    private static String usuarioUnico = null;
+    private static String rolUnico = null;
+
+    // Método para mostrar la ventana (usa singleton)
+    public static void mostrarVentana(String usuario, String rol) {
+        // Solo una ventana activa por usuario/rol, o si la ventana fue cerrada
+        if (instanciaUnica == null || !instanciaUnica.isDisplayable() ||
+                !usuario.equals(usuarioUnico) || !rol.equals(rolUnico)) {
+            instanciaUnica = new VerProductos(usuario, rol);
+            usuarioUnico = usuario;
+            rolUnico = rol;
+        }
+        instanciaUnica.setVisible(true);
+        instanciaUnica.toFront();
+        instanciaUnica.requestFocus();
+    }
+
+    // Constructor PRIVADO: fuerza uso de mostrarVentana
+    private VerProductos(String usuarioActual, String rolActual) {
         this.usuarioActual = usuarioActual;
         this.rolActual = rolActual;
 
@@ -46,19 +66,17 @@ public class VerProductos extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(24, 32, 0, 32)); // MÁS ESPACIO ARRIBA
+        panel.setBorder(BorderFactory.createEmptyBorder(24, 32, 0, 32));
 
-        // Logo centrado y con espacio
         JLabel lblLogo = new JLabel();
         lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
         lblLogo.setVerticalAlignment(SwingConstants.CENTER);
-        lblLogo.setBorder(BorderFactory.createEmptyBorder(0, 0, 24, 0)); // MÁS ESPACIO ABAJO
+        lblLogo.setBorder(BorderFactory.createEmptyBorder(0, 0, 24, 0));
         try {
             URL urlLogo = getClass().getResource("/images/viveza-textil-logo.png");
             if (urlLogo != null) {
                 BufferedImage img = ImageIO.read(urlLogo);
                 img = reemplazarTonosOscurosPorBlanco(img);
-                // Ajusta el tamaño según el panel
                 int maxW = 240, maxH = 60;
                 int w = img.getWidth(), h = img.getHeight();
                 double scale = Math.min((double)maxW / w, (double)maxH / h);
@@ -70,8 +88,7 @@ public class VerProductos extends JFrame {
         } catch (IOException e) { System.err.println("Logo error: " + e.getMessage()); }
         panel.add(lblLogo, BorderLayout.NORTH);
 
-        // Botones (¡ya incluye "Ver Gráficas"!)
-        JPanel panelBotones = new JPanel(new GridLayout(2, 7, 18, 10)); // 7 columnas
+        JPanel panelBotones = new JPanel(new GridLayout(2, 7, 18, 10));
         panelBotones.setOpaque(false);
         String[] botones = {
             "Entradas/Salidas", "Entregar Productos", "Recibir Productos",
@@ -231,26 +248,26 @@ public class VerProductos extends JFrame {
     }
 
     // Métodos de apertura de ventanas...
-    private void abrirMovimientoProductos() { new MovimientoProductos(rolActual, usuarioActual).setVisible(true); }
-    private void abrirPrepararPedido()      { new PrepararPedido().setVisible(true);      }
-    private void abrirRecepcionMercancia()  { new RecepcionMercancia().setVisible(true);  }
-    private void abrirGestionProductos()    { new GestionProductos().setVisible(true);    }
-    private void abrirHistorialMovimientos(){ new HistorialMovimientos().setVisible(true);}
-    private void abrirAjusteInventario()    { new AjusteInventario(usuarioActual, rolActual).setVisible(true);}
-    private void abrirHistorialAjustes()    { new HistorialAjustes().setVisible(true);    }
+    private void abrirMovimientoProductos() { MovimientoProductos.mostrarVentana(rolActual, usuarioActual); }
+    private void abrirPrepararPedido()      { PrepararPedido.mostrarVentana();      }
+    private void abrirRecepcionMercancia()  { RecepcionMercancia.mostrarVentana();  }
+    private void abrirGestionProductos()    { GestionProductos.mostrarVentana();    }
+    private void abrirHistorialMovimientos(){ HistorialMovimientos.mostrarVentana(); }
+    private void abrirAjusteInventario()    { AjusteInventario.mostrarVentana(usuarioActual, rolActual);}
+    private void abrirHistorialAjustes()    { HistorialAjustes.mostrarVentana();    }
     private void abrirEditarProducto() {
         int selectedRow = tabla.getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(this, "Selecciona un producto para editar.");
             return;
         }
-        int idProducto = (int) modelo.getValueAt(selectedRow, 0); // Columna 0 = ID
+        int idProducto = (int) modelo.getValueAt(selectedRow, 0);
         EditarProducto dialog = new EditarProducto(idProducto, usuarioActual, rolActual);
         dialog.setVisible(true);
-        cargarProductos(); // Refresca la tabla por si se editó algo
+        cargarProductos();
     }
     private void abrirGraficas() {
-        new VentanaGraficas().setVisible(true);
+        VentanaGraficas.mostrarVentana();
     }
     private void eliminarProducto() {
         int selectedRow = tabla.getSelectedRow();
@@ -259,7 +276,7 @@ public class VerProductos extends JFrame {
             return;
         }
 
-        int idProducto = (int) modelo.getValueAt(selectedRow, 0); // Columna 0 = ID
+        int idProducto = (int) modelo.getValueAt(selectedRow, 0);
 
         int confirm = JOptionPane.showConfirmDialog(
             this,
@@ -274,7 +291,6 @@ public class VerProductos extends JFrame {
         }
 
         try (Connection con = ConexionDB.conectar()) {
-            // (Opcional) Guarda datos del producto para historial antes de eliminar
             String sqlSelect = "SELECT codigo_barras, modelo, unidad, ubicacion FROM productos WHERE id = ?";
             String codigo = "", modeloProd = "", unidad = "", ubicacion = "";
             try (PreparedStatement ps = con.prepareStatement(sqlSelect)) {
@@ -289,26 +305,12 @@ public class VerProductos extends JFrame {
                 }
             }
 
-            // Elimina el producto
             String sqlDelete = "DELETE FROM productos WHERE id = ?";
             try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
                 ps.setInt(1, idProducto);
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
-                    // (Opcional) Registrar en historial de eliminación
-                    // Descomenta si tienes la tabla historial_eliminacion:
-                    /*
-                    String sqlHist = "INSERT INTO historial_eliminacion (id_producto, codigo_barras, modelo, unidad, ubicacion, usuario, fecha) VALUES (?, ?, ?, ?, ?, ?, NOW())";
-                    try (PreparedStatement psHist = con.prepareStatement(sqlHist)) {
-                        psHist.setInt(1, idProducto);
-                        psHist.setString(2, codigo);
-                        psHist.setString(3, modeloProd);
-                        psHist.setString(4, unidad);
-                        psHist.setString(5, ubicacion);
-                        psHist.setString(6, usuarioActual);
-                        psHist.executeUpdate();
-                    }
-                    */
+                    // Puedes guardar historial aquí si tienes la tabla
                     JOptionPane.showMessageDialog(this, "Producto eliminado correctamente.");
                 } else {
                     JOptionPane.showMessageDialog(this, "No se pudo eliminar el producto.");
