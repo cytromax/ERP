@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.sql.*;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class EditarProducto extends JFrame {
     private int idProducto;
@@ -214,22 +215,28 @@ public class EditarProducto extends JFrame {
         }
     }
 
-    private boolean validarAdministrador(String usuario, String contra) {
-        String sql = "SELECT COUNT(*) FROM usuarios WHERE usuario = ? AND contrasena = ? AND rol = 'administrador'";
-        try (Connection con = ConexionDB.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, usuario);
-            ps.setString(2, contra);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
+    
+
+private boolean validarAdministrador(String usuario, String contra) {
+    String sql = "SELECT password, rol FROM usuarios WHERE username = ?";
+    try (Connection con = ConexionDB.conectar();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+        ps.setString(1, usuario);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String dbPass = rs.getString("password");
+                String dbRol = rs.getString("rol");
+                // Compara usando bcrypt:
+                boolean passCorrecto = BCrypt.checkpw(contra, dbPass);
+                return passCorrecto && dbRol.equalsIgnoreCase("administrador");
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error validando administrador: " + e.getMessage());
         }
-        return false;
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error validando administrador: " + e.getMessage());
     }
+    return false;
+}
+
 
     private void abrirHistorialEdicionProductos() {
         HistorialEdicionProductos historial = new HistorialEdicionProductos(rolActual);

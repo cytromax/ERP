@@ -305,74 +305,95 @@ add(panelInferior, BorderLayout.SOUTH);
     }
 
     private void finalizarRecepcion() {
-        if (carrito.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay productos en la recepción.");
-            return;
-        }
-        String proveedor = txtProveedor.getText().trim();
-        if (proveedor.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Debes capturar el proveedor.");
-            txtProveedor.requestFocusInWindow();
-            return;
-        }
-        // --- NUEVO: Validar empleado que recibe ---
-        EmpleadoScanField.EmpleadoItem empleadoRecibio = campoEmpleadoRecibio.getEmpleadoSeleccionado();
-        if (empleadoRecibio == null) {
-            JOptionPane.showMessageDialog(this, "Debes escanear un empleado que recibe.");
-            campoEmpleadoRecibio.requestFocusInWindow();
-            return;
-        }
-        int idEmpleadoRecibio = empleadoRecibio.id;
+    if (carrito.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "No hay productos en la recepción.");
+        return;
+    }
+    String proveedor = txtProveedor.getText().trim();
+    if (proveedor.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Debes capturar el proveedor.");
+        txtProveedor.requestFocusInWindow();
+        return;
+    }
+    // Validar empleado que recibe
+    EmpleadoScanField.EmpleadoItem empleadoRecibio = campoEmpleadoRecibio.getEmpleadoSeleccionado();
+    if (empleadoRecibio == null) {
+        JOptionPane.showMessageDialog(this, "Debes escanear un empleado que recibe.");
+        campoEmpleadoRecibio.requestFocusInWindow();
+        return;
+    }
+    int idEmpleadoRecibio = empleadoRecibio.id;
 
-        try (Connection con = ConexionDB.conectar()) {
-            con.setAutoCommit(false);
+    // ---- Nuevo: Preguntar por número de pedido ----
+    String numeroPedido = "";
+    int respuesta = JOptionPane.showConfirmDialog(this,
+            "¿Cuentas con número de pedido? (Si no tienes, presiona No)",
+            "Número de Pedido", JOptionPane.YES_NO_OPTION);
 
-            for (ItemRecepcion item : carrito) {
-                int existenciaAntes = 0;
-                try (PreparedStatement ps = con.prepareStatement(
-                        "SELECT existencia FROM productos WHERE id = ?")) {
-                    ps.setInt(1, item.id);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            existenciaAntes = rs.getInt("existencia");
-                        }
+    if (respuesta == JOptionPane.YES_OPTION) {
+        numeroPedido = JOptionPane.showInputDialog(this, "Ingresa el número de pedido:", "Número de Pedido", JOptionPane.QUESTION_MESSAGE);
+        if (numeroPedido == null) numeroPedido = ""; // Si cancela, dejarlo vacío
+    }
+    // Si seleccionó NO, numeroPedido queda en blanco
+
+    try (Connection con = ConexionDB.conectar()) {
+        con.setAutoCommit(false);
+
+        for (ItemRecepcion item : carrito) {
+            int existenciaAntes = 0;
+            try (PreparedStatement ps = con.prepareStatement(
+                    "SELECT existencia FROM productos WHERE id = ?")) {
+                ps.setInt(1, item.id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        existenciaAntes = rs.getInt("existencia");
                     }
-                }
-
-                int existenciaDespues = existenciaAntes + item.cantidad;
-
-                try (PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO movimientos "
-                        + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, proveedor, id_empleado) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?)")) {
-                    ps.setInt(1, item.id);
-                    ps.setInt(2, existenciaAntes);
-                    ps.setString(3, "entrada");
-                    ps.setInt(4, item.cantidad);
-                    ps.setInt(5, existenciaDespues);
-                    ps.setString(6, System.getProperty("user.name"));
-                    ps.setString(7, proveedor);
-                    ps.setInt(8, idEmpleadoRecibio);
-                    ps.executeUpdate();
-                }
-
-                try (PreparedStatement ps2 = con.prepareStatement(
-                        "UPDATE productos SET existencia = ? WHERE id = ?")) {
-                    ps2.setInt(1, existenciaDespues);
-                    ps2.setInt(2, item.id);
-                    ps2.executeUpdate();
                 }
             }
 
-            con.commit();
-            JOptionPane.showMessageDialog(this, "Recepción registrada correctamente.\nProveedor: " + proveedor);
-            limpiarTodo();
+            int existenciaDespues = existenciaAntes + item.cantidad;
 
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al registrar la entrada: " + ex.getMessage());
+            try (PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO movimientos "
+                    + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, proveedor, id_empleado, numero_pedido) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)")) {
+                ps.setInt(1, item.id);
+                ps.setInt(2, existenciaAntes);
+                ps.setString(3, "entrada");
+                ps.setInt(4, item.cantidad);
+                ps.setInt(5, existenciaDespues);
+                ps.setString(6, System.getProperty("user.name"));
+                ps.setString(7, proveedor);
+                ps.setInt(8, idEmpleadoRecibio);
+                if (numeroPedido == null || numeroPedido.trim().isEmpty()) {
+                    ps.setNull(9, java.sql.Types.VARCHAR);
+                } else {
+                    ps.setString(9, numeroPedido.trim());
+                }
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps2 = con.prepareStatement(
+                    "UPDATE productos SET existencia = ? WHERE id = ?")) {
+                ps2.setInt(1, existenciaDespues);
+                ps2.setInt(2, item.id);
+                ps2.executeUpdate();
+            }
         }
+
+        con.commit();
+        JOptionPane.showMessageDialog(this, 
+            "Recepción registrada correctamente.\nProveedor: " + proveedor +
+            (numeroPedido == null || numeroPedido.trim().isEmpty() ? "" : "\nFolio: " + numeroPedido)
+        );
+        limpiarTodo();
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error al registrar la entrada: " + ex.getMessage());
     }
+}
+
 
     private void limpiarTodo() {
         txtBuscarProducto.setText("");

@@ -9,6 +9,7 @@ import java.awt.event.*;
 import java.io.FileOutputStream;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -47,18 +48,18 @@ public class HistorialMovimientosPanel extends JPanel {
         comboTipo = new JComboBox<>(new String[]{"Todos", "Entrada", "Salida"});
         panelFiltros.add(comboTipo);
 
-        // Establecer tipo por defecto según parámetro
+        // Selecciona el tipo recibido en el tab
         if (tipoDefault.equals("entrada")) comboTipo.setSelectedItem("Entrada");
         else if (tipoDefault.equals("salida")) comboTipo.setSelectedItem("Salida");
         else comboTipo.setSelectedItem("Todos");
 
         panelFiltros.add(new JLabel("Fecha desde:"));
-        spinnerFechaDesde = new JSpinner(new SpinnerDateModel());
+        spinnerFechaDesde = new JSpinner(new SpinnerDateModel(hoy(), null, null, Calendar.DAY_OF_MONTH));
         spinnerFechaDesde.setEditor(new JSpinner.DateEditor(spinnerFechaDesde, "yyyy-MM-dd"));
         panelFiltros.add(spinnerFechaDesde);
 
         panelFiltros.add(new JLabel("Fecha hasta:"));
-        spinnerFechaHasta = new JSpinner(new SpinnerDateModel());
+        spinnerFechaHasta = new JSpinner(new SpinnerDateModel(hoy(), null, null, Calendar.DAY_OF_MONTH));
         spinnerFechaHasta.setEditor(new JSpinner.DateEditor(spinnerFechaHasta, "yyyy-MM-dd"));
         panelFiltros.add(spinnerFechaHasta);
 
@@ -68,58 +69,63 @@ public class HistorialMovimientosPanel extends JPanel {
 
         add(panelFiltros, BorderLayout.NORTH);
 
-        // MODELO con todas las columnas, respeta el orden
-        modelo = new DefaultTableModel(
-            new String[]{
+        // Definir columnas segun tipo
+        String[] columnas;
+        if (tipoDefault.equals("entrada")) {
+            columnas = new String[]{
+                "ID Movimiento", "ID Producto", "Código", "Modelo",
+                "Existencia antes", "Tipo", "Cantidad", "Existencia después",
+                "Recibió", "Proveedor", "Usuario", "Fecha", "Núm. Pedido"
+            };
+        } else if (tipoDefault.equals("salida")) {
+            columnas = new String[]{
+                "ID Movimiento", "ID Producto", "Código", "Modelo",
+                "Existencia antes", "Tipo", "Cantidad", "Existencia después",
+                "Entregó", "Recibió", "Usuario", "Fecha", "Núm. Pedido"
+            };
+        } else {
+            columnas = new String[]{
                 "ID Movimiento", "ID Producto", "Código", "Modelo",
                 "Existencia antes", "Tipo", "Cantidad", "Existencia después",
                 "Entregó", "Recibió", "Proveedor", "Usuario", "Fecha", "Núm. Pedido"
-            }, 0
-        );
+            };
+        }
+
+        modelo = new DefaultTableModel(columnas, 0);
         tabla = new JTable(modelo);
 
-        // OCULTAR solo en la vista (deja el modelo igual)
+        // Oculta IDs (pero los deja en el modelo/export)
         TableColumnModel columnModel = tabla.getColumnModel();
-        columnModel.getColumn(0).setMinWidth(0);
-        columnModel.getColumn(0).setMaxWidth(0);
-        columnModel.getColumn(0).setPreferredWidth(0);
-        columnModel.getColumn(0).setResizable(false);
-
-        columnModel.getColumn(1).setMinWidth(0);
-        columnModel.getColumn(1).setMaxWidth(0);
-        columnModel.getColumn(1).setPreferredWidth(0);
-        columnModel.getColumn(1).setResizable(false);
+        columnModel.getColumn(0).setMinWidth(0); columnModel.getColumn(0).setMaxWidth(0); columnModel.getColumn(0).setPreferredWidth(0);
+        columnModel.getColumn(1).setMinWidth(0); columnModel.getColumn(1).setMaxWidth(0); columnModel.getColumn(1).setPreferredWidth(0);
 
         ajustarColumnas();
 
         JScrollPane scroll = new JScrollPane(tabla);
         add(scroll, BorderLayout.CENTER);
 
-        // Botón exportar
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         btnExportar = new JButton("Exportar a Excel");
         btnExportar.addActionListener(e -> exportarAExcel());
         panelBotones.add(btnExportar);
         add(panelBotones, BorderLayout.SOUTH);
 
-        // Cargar datos iniciales
         cargarDatosFiltrados();
     }
 
     private void ajustarColumnas() {
         TableColumnModel columnModel = tabla.getColumnModel();
-        int[] anchos = {0, 0, 120, 250, 100, 70, 70, 120, 160, 160, 180, 100, 130, 100};
-        for (int i = 2; i < anchos.length; i++) { // Empieza en 2 porque 0 y 1 son ocultos
-            if (i < columnModel.getColumnCount()) {
-                columnModel.getColumn(i).setPreferredWidth(anchos[i]);
-            }
+        // Los primeros dos (ID) son ocultos, a partir del 2
+        int[] anchos = {0, 0, 120, 250, 100, 70, 70, 120, 160, 160, 130, 100, 130, 100};
+        for (int i = 2; i < Math.min(anchos.length, columnModel.getColumnCount()); i++) {
+            columnModel.getColumn(i).setPreferredWidth(anchos[i]);
         }
     }
 
     private void cargarDatosFiltrados() {
         String texto = txtBuscarProducto.getText().trim();
         String numeroPedido = txtNumeroPedido.getText().trim();
-        String tipo = comboTipo.getSelectedItem().toString();
+        String tipo = comboTipo.getSelectedItem().toString().toLowerCase();
         Date fechaDesde = (Date) spinnerFechaDesde.getValue();
         Date fechaHasta = (Date) spinnerFechaHasta.getValue();
 
@@ -127,29 +133,72 @@ public class HistorialMovimientosPanel extends JPanel {
 
         modelo.setRowCount(0);
 
-        String sql = """
-            SELECT 
-                m.id, m.id_producto, p.codigo_barras, p.modelo, 
-                m.existencia_antes, m.tipo, m.cantidad, 
-                m.existencia_despues, 
-                COALESCE(e1.codigo_empleado || ' - ' || e1.nombre, 'N/A') AS entrego,
-                COALESCE(e2.codigo_empleado || ' - ' || e2.nombre, 'N/A') AS recibio,
-                COALESCE(m.proveedor, 'N/A') AS proveedor,
-                m.usuario, m.fecha,
-                COALESCE(m.numero_pedido, '') AS numero_pedido
-            FROM movimientos m 
-            JOIN productos p ON m.id_producto = p.id 
-            LEFT JOIN empleados e1 ON m.id_empleado_entregador = e1.id
-            LEFT JOIN empleados e2 ON m.id_empleado = e2.id
-            WHERE (p.codigo_barras ILIKE ? OR p.modelo ILIKE ?)
-              AND (? = '' OR m.numero_pedido ILIKE ?)
-              AND (? = 'Todos' OR LOWER(m.tipo) = LOWER(?))
-              AND m.fecha BETWEEN ?::timestamp AND ?::timestamp + INTERVAL '1 day'
-            ORDER BY m.fecha DESC
-        """;
+        // Filtro SQL: columnas segun tipo para entradas, salidas o todos
+        String selectSQL;
+        if (tipo.equals("entrada")) {
+            selectSQL = """
+                SELECT 
+                    m.id, m.id_producto, p.codigo_barras, p.modelo, 
+                    m.existencia_antes, m.tipo, m.cantidad, 
+                    m.existencia_despues, 
+                    COALESCE(e2.codigo_empleado || ' - ' || e2.nombre, 'N/A') AS recibio,
+                    COALESCE(m.proveedor, 'N/A') AS proveedor,
+                    m.usuario, m.fecha,
+                    COALESCE(m.numero_pedido, '') AS numero_pedido
+                FROM movimientos m 
+                JOIN productos p ON m.id_producto = p.id 
+                LEFT JOIN empleados e2 ON m.id_empleado = e2.id
+                WHERE (p.codigo_barras ILIKE ? OR p.modelo ILIKE ?)
+                  AND (? = '' OR m.numero_pedido ILIKE ?)
+                  AND (? = 'todos' OR LOWER(m.tipo) = LOWER(?))
+                  AND m.fecha BETWEEN ?::timestamp AND ?::timestamp + INTERVAL '1 day'
+                ORDER BY m.fecha DESC
+            """;
+        } else if (tipo.equals("salida")) {
+            selectSQL = """
+                SELECT 
+                    m.id, m.id_producto, p.codigo_barras, p.modelo, 
+                    m.existencia_antes, m.tipo, m.cantidad, 
+                    m.existencia_despues, 
+                    COALESCE(e1.codigo_empleado || ' - ' || e1.nombre, 'N/A') AS entrego,
+                    COALESCE(e2.codigo_empleado || ' - ' || e2.nombre, 'N/A') AS recibio,
+                    m.usuario, m.fecha,
+                    COALESCE(m.numero_pedido, '') AS numero_pedido
+                FROM movimientos m 
+                JOIN productos p ON m.id_producto = p.id 
+                LEFT JOIN empleados e1 ON m.id_empleado_entregador = e1.id
+                LEFT JOIN empleados e2 ON m.id_empleado_solicitante = e2.id
+                WHERE (p.codigo_barras ILIKE ? OR p.modelo ILIKE ?)
+                  AND (? = '' OR m.numero_pedido ILIKE ?)
+                  AND (? = 'todos' OR LOWER(m.tipo) = LOWER(?))
+                  AND m.fecha BETWEEN ?::timestamp AND ?::timestamp + INTERVAL '1 day'
+                ORDER BY m.fecha DESC
+            """;
+        } else { // todos
+            selectSQL = """
+                SELECT 
+                    m.id, m.id_producto, p.codigo_barras, p.modelo, 
+                    m.existencia_antes, m.tipo, m.cantidad, 
+                    m.existencia_despues, 
+                    COALESCE(e1.codigo_empleado || ' - ' || e1.nombre, 'N/A') AS entrego,
+                    COALESCE(e2.codigo_empleado || ' - ' || e2.nombre, 'N/A') AS recibio,
+                    COALESCE(m.proveedor, 'N/A') AS proveedor,
+                    m.usuario, m.fecha,
+                    COALESCE(m.numero_pedido, '') AS numero_pedido
+                FROM movimientos m 
+                JOIN productos p ON m.id_producto = p.id 
+                LEFT JOIN empleados e1 ON m.id_empleado_entregador = e1.id
+                LEFT JOIN empleados e2 ON m.id_empleado = e2.id
+                WHERE (p.codigo_barras ILIKE ? OR p.modelo ILIKE ?)
+                  AND (? = '' OR m.numero_pedido ILIKE ?)
+                  AND (? = 'todos' OR LOWER(m.tipo) = LOWER(?))
+                  AND m.fecha BETWEEN ?::timestamp AND ?::timestamp + INTERVAL '1 day'
+                ORDER BY m.fecha DESC
+            """;
+        }
 
         try (Connection con = ConexionDB.conectar();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+             PreparedStatement ps = con.prepareStatement(selectSQL)) {
 
             String filtro = "%" + texto + "%";
             ps.setString(1, filtro);
@@ -167,22 +216,56 @@ public class HistorialMovimientosPanel extends JPanel {
             while (rs.next()) {
                 Timestamp timestamp = rs.getTimestamp("fecha");
                 String fechaFormateada = timestamp != null ? formatoFecha.format(timestamp) : "N/A";
-                modelo.addRow(new Object[]{
-                    rs.getInt("id"),
-                    rs.getInt("id_producto"),
-                    rs.getString("codigo_barras"),
-                    rs.getString("modelo"),
-                    rs.getDouble("existencia_antes"),
-                    rs.getString("tipo"),
-                    rs.getDouble("cantidad"),
-                    rs.getDouble("existencia_despues"),
-                    rs.getString("entrego"),
-                    rs.getString("recibio"),
-                    rs.getString("proveedor"),
-                    rs.getString("usuario"),
-                    fechaFormateada,
-                    rs.getString("numero_pedido")
-                });
+                if (tipo.equals("entrada")) {
+                    modelo.addRow(new Object[]{
+                        rs.getInt("id"),
+                        rs.getInt("id_producto"),
+                        rs.getString("codigo_barras"),
+                        rs.getString("modelo"),
+                        rs.getDouble("existencia_antes"),
+                        rs.getString("tipo"),
+                        rs.getDouble("cantidad"),
+                        rs.getDouble("existencia_despues"),
+                        rs.getString("recibio"),
+                        rs.getString("proveedor"),
+                        rs.getString("usuario"),
+                        fechaFormateada,
+                        rs.getString("numero_pedido")
+                    });
+                } else if (tipo.equals("salida")) {
+                    modelo.addRow(new Object[]{
+                        rs.getInt("id"),
+                        rs.getInt("id_producto"),
+                        rs.getString("codigo_barras"),
+                        rs.getString("modelo"),
+                        rs.getDouble("existencia_antes"),
+                        rs.getString("tipo"),
+                        rs.getDouble("cantidad"),
+                        rs.getDouble("existencia_despues"),
+                        rs.getString("entrego"),
+                        rs.getString("recibio"),
+                        rs.getString("usuario"),
+                        fechaFormateada,
+                        rs.getString("numero_pedido")
+                    });
+                } else {
+                    modelo.addRow(new Object[]{
+                        rs.getInt("id"),
+                        rs.getInt("id_producto"),
+                        rs.getString("codigo_barras"),
+                        rs.getString("modelo"),
+                        rs.getDouble("existencia_antes"),
+                        rs.getString("tipo"),
+                        rs.getDouble("cantidad"),
+                        rs.getDouble("existencia_despues"),
+                        rs.getString("entrego"),
+                        rs.getString("recibio"),
+                        rs.getString("proveedor"),
+                        rs.getString("usuario"),
+                        fechaFormateada,
+                        rs.getString("numero_pedido")
+                    });
+                }
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error al cargar historial filtrado: " + e.getMessage());
@@ -236,5 +319,16 @@ public class HistorialMovimientosPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Error al exportar a Excel: " + e.getMessage());
             }
         }
+    }
+
+    // --- Métodos utilitarios ---
+
+    private Date hoy() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTime();
     }
 }
