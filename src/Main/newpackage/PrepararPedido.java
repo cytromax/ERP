@@ -13,21 +13,21 @@ import javax.swing.event.DocumentEvent;
 
 public class PrepararPedido extends JFrame {
     // --- INICIO: Singleton para evitar varias ventanas ---
-private static PrepararPedido instanciaUnica = null;
+    private static PrepararPedido instanciaUnica = null;
 
-public static void mostrarVentana() {
-    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
-        instanciaUnica = new PrepararPedido();
+    public static void mostrarVentana() {
+        if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+            instanciaUnica = new PrepararPedido();
+        }
+        instanciaUnica.setVisible(true);
+        instanciaUnica.toFront();
+        instanciaUnica.requestFocus();
     }
-    instanciaUnica.setVisible(true);
-    instanciaUnica.toFront();
-    instanciaUnica.requestFocus();
-}
-// --- FIN ---
-
+    // --- FIN ---
 
     private JTextField txtBuscarProducto;
     private EmpleadoScanField campoEmpleadoSolicitante;
+    private EmpleadoScanField campoEmpleadoEntregador;
     private JTable tablaPedido;
     private DefaultTableModel modeloPedido;
     private final List<ItemPedido> carrito = new ArrayList<>();
@@ -40,7 +40,7 @@ public static void mostrarVentana() {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(0, 0));
 
-        // --- Panel superior: búsqueda de producto ---
+        // Panel superior: búsqueda de producto
         JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         panelBusqueda.setBackground(new Color(38, 41, 48));
         JLabel lblBuscar = new JLabel("Buscar producto:");
@@ -54,44 +54,26 @@ public static void mostrarVentana() {
 
         txtBuscarProducto.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             private void debounceBuscar() {
-                if (debounceTimer != null) {
-                    debounceTimer.stop();
-                }
+                if (debounceTimer != null) debounceTimer.stop();
                 debounceTimer = new Timer(250, e -> {
                     String texto = txtBuscarProducto.getText().trim();
-                    if (!texto.isEmpty()) {
-                        buscarProductoPorCodigo(texto);
-                    }
+                    if (!texto.isEmpty()) buscarProductoPorCodigo(texto);
                 });
                 debounceTimer.setRepeats(false);
                 debounceTimer.start();
             }
 
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                debounceBuscar();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                debounceBuscar();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                debounceBuscar();
-            }
+            @Override public void insertUpdate(DocumentEvent e) { debounceBuscar(); }
+            @Override public void removeUpdate(DocumentEvent e) { debounceBuscar(); }
+            @Override public void changedUpdate(DocumentEvent e) { debounceBuscar(); }
         });
 
         panelBusqueda.add(btnBuscar);
         add(panelBusqueda, BorderLayout.NORTH);
 
-        // --- Tabla de productos agregados al pedido ---
+        // Tabla de productos agregados al pedido
         modeloPedido = new DefaultTableModel(new String[]{"ID", "Código", "Modelo", "Cantidad"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         tablaPedido = new JTable(modeloPedido);
         tablaPedido.setFont(new Font("Segoe UI", Font.PLAIN, 16));
@@ -108,31 +90,51 @@ public static void mostrarVentana() {
             }
         });
 
-        // --- Panel inferior: empleado y finalizar ---
-        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
-        panelInferior.setBackground(new Color(38, 41, 48));
-        JLabel lblEmp = new JLabel("Empleado que solicita el producto:");
-        lblEmp.setForeground(new Color(200, 230, 255));
+        // --- Panel Inferior: Empleado que entrega y recibe ---
+        JPanel panelInferior = new JPanel(new GridBagLayout());
+panelInferior.setBackground(new Color(38, 41, 48));
+GridBagConstraints gbc = new GridBagConstraints();
+gbc.insets = new Insets(4, 10, 4, 10);
+gbc.gridy = 0;
+gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // --- COMPONENTE EMPLEADO ---
-        campoEmpleadoSolicitante = new EmpleadoScanField();
-        campoEmpleadoSolicitante.setEmpleados(obtenerListaEmpleados());
+// Empleado que entrega:
+gbc.gridx = 0; gbc.weightx = 0;
+JLabel lblEmpEntregador = new JLabel("Empleado que entrega:");
+lblEmpEntregador.setForeground(new Color(200, 230, 255));
+panelInferior.add(lblEmpEntregador, gbc);
 
-        JButton btnFinalizar = new JButton("Finalizar pedido");
-        JButton btnLimpiar = new JButton("Limpiar pedido");
+gbc.gridx = 1; gbc.weightx = 1;
+campoEmpleadoEntregador = new EmpleadoScanField();
+campoEmpleadoEntregador.setEmpleados(obtenerListaEmpleados());
+panelInferior.add(campoEmpleadoEntregador, gbc);
 
-        btnFinalizar.setBackground(new Color(22, 160, 100));
-        btnFinalizar.setForeground(Color.WHITE);
-        btnFinalizar.addActionListener(e -> finalizarPedido());
+// Empleado que recibe:
+gbc.gridx = 2; gbc.weightx = 0;
+JLabel lblEmpSolicitante = new JLabel("Empleado que recibe:");
+lblEmpSolicitante.setForeground(new Color(200, 230, 255));
+panelInferior.add(lblEmpSolicitante, gbc);
 
-        btnLimpiar.addActionListener(e -> limpiarTodo());
+gbc.gridx = 3; gbc.weightx = 1;
+campoEmpleadoSolicitante = new EmpleadoScanField();
+campoEmpleadoSolicitante.setEmpleados(obtenerListaEmpleados());
+panelInferior.add(campoEmpleadoSolicitante, gbc);
 
-        panelInferior.add(lblEmp);
-        panelInferior.add(campoEmpleadoSolicitante);
-        panelInferior.add(btnFinalizar);
-        panelInferior.add(btnLimpiar);
+// Segunda fila (los botones)
+gbc.gridy = 1; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 0;
+JButton btnFinalizar = new JButton("Finalizar pedido");
+btnFinalizar.setBackground(new Color(22, 160, 100));
+btnFinalizar.setForeground(Color.WHITE);
+btnFinalizar.addActionListener(e -> finalizarPedido());
+panelInferior.add(btnFinalizar, gbc);
 
-        add(panelInferior, BorderLayout.SOUTH);
+gbc.gridx = 2; gbc.gridwidth = 2;
+JButton btnLimpiar = new JButton("Limpiar pedido");
+btnLimpiar.addActionListener(e -> limpiarTodo());
+panelInferior.add(btnLimpiar, gbc);
+
+add(panelInferior, BorderLayout.SOUTH);
+
 
         // Buscar producto con Enter
         txtBuscarProducto.addActionListener(e -> buscarProducto());
@@ -141,9 +143,7 @@ public static void mostrarVentana() {
     // ---------- Lógica principal -----------
     private void buscarProducto() {
         String query = txtBuscarProducto.getText().trim();
-        if (query.isEmpty()) {
-            return;
-        }
+        if (query.isEmpty()) return;
         try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(
                 "SELECT id, codigo_barras, modelo FROM productos WHERE codigo_barras = ? OR modelo ILIKE ?")) {
             ps.setString(1, query);
@@ -153,14 +153,11 @@ public static void mostrarVentana() {
                     int id = rs.getInt("id");
                     String codigo = rs.getString("codigo_barras");
                     String modelo = rs.getString("modelo");
-                    // Solicita cantidad
                     String cantidadStr = JOptionPane.showInputDialog(this,
                             "Producto: " + modelo + " (" + codigo + ")\nIngresa la cantidad:", "Cantidad", JOptionPane.PLAIN_MESSAGE);
                     if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
                         int cantidad = Integer.parseInt(cantidadStr.trim());
-                        if (cantidad <= 0) {
-                            throw new NumberFormatException();
-                        }
+                        if (cantidad <= 0) throw new NumberFormatException();
                         agregarAlPedido(id, codigo, modelo, cantidad);
                     }
                 } else {
@@ -258,9 +255,7 @@ public static void mostrarVentana() {
 
     private void editarCantidadPedido() {
         int row = tablaPedido.getSelectedRow();
-        if (row == -1) {
-            return;
-        }
+        if (row == -1) return;
         ItemPedido item = carrito.get(row);
         String cantidadStr = JOptionPane.showInputDialog(this,
                 "Editar cantidad para: " + item.modelo + " (" + item.codigo + ")",
@@ -268,9 +263,7 @@ public static void mostrarVentana() {
         if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
             try {
                 int cantidad = Integer.parseInt(cantidadStr.trim());
-                if (cantidad <= 0) {
-                    throw new NumberFormatException();
-                }
+                if (cantidad <= 0) throw new NumberFormatException();
                 item.cantidad = cantidad;
                 actualizarTablaPedido();
             } catch (NumberFormatException e) {
@@ -304,49 +297,50 @@ public static void mostrarVentana() {
             JOptionPane.showMessageDialog(this, "No hay productos en el pedido.");
             return;
         }
-        // Validación usando el componente
-        EmpleadoScanField.EmpleadoItem empleado = campoEmpleadoSolicitante.getEmpleadoSeleccionado();
-        if (empleado == null) {
-            JOptionPane.showMessageDialog(this, "Debes escanear un empleado válido.");
+        EmpleadoScanField.EmpleadoItem entregador = campoEmpleadoEntregador.getEmpleadoSeleccionado();
+        if (entregador == null) {
+            JOptionPane.showMessageDialog(this, "Debes escanear el empleado que ENTREGA.");
+            campoEmpleadoEntregador.requestFocusInWindow();
+            return;
+        }
+        EmpleadoScanField.EmpleadoItem solicitante = campoEmpleadoSolicitante.getEmpleadoSeleccionado();
+        if (solicitante == null) {
+            JOptionPane.showMessageDialog(this, "Debes escanear el empleado que RECIBE.");
             campoEmpleadoSolicitante.requestFocusInWindow();
             return;
         }
-        int empId = empleado.id;
+        int idEntregador = entregador.id;
+        int idSolicitante = solicitante.id;
 
         try (Connection con = ConexionDB.conectar()) {
-            con.setAutoCommit(false); // Hacer commit/rollback en bloque
+            con.setAutoCommit(false);
 
             for (ItemPedido item : carrito) {
-                // 1. Obtiene existencia antes
                 int existenciaAntes = 0;
                 try (PreparedStatement ps = con.prepareStatement(
                         "SELECT existencia FROM productos WHERE id = ?")) {
                     ps.setInt(1, item.id);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            existenciaAntes = rs.getInt("existencia");
-                        }
+                        if (rs.next()) existenciaAntes = rs.getInt("existencia");
                     }
                 }
-
                 int existenciaDespues = existenciaAntes - item.cantidad;
 
-                // 2. Inserta movimiento en la tabla movimientos
+                // Asegúrate que la tabla movimientos tenga estos campos
                 try (PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO movimientos " +
-                        "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, id_empleado) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)")) {
+                        "INSERT INTO movimientos "
+                        + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, id_empleado_entregador, id_empleado_solicitante) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?)")) {
                     ps.setInt(1, item.id);
                     ps.setInt(2, existenciaAntes);
                     ps.setString(3, "salida");
                     ps.setInt(4, item.cantidad);
                     ps.setInt(5, existenciaDespues);
-                    ps.setString(6, System.getProperty("user.name")); // Modifica aquí si tienes variable de sesión
-                    ps.setInt(7, empId);
+                    ps.setString(6, System.getProperty("user.name"));
+                    ps.setInt(7, idEntregador);
+                    ps.setInt(8, idSolicitante);
                     ps.executeUpdate();
                 }
-
-                // 3. Actualiza inventario
                 try (PreparedStatement ps2 = con.prepareStatement(
                         "UPDATE productos SET existencia = ? WHERE id = ?")) {
                     ps2.setInt(1, existenciaDespues);
@@ -356,8 +350,9 @@ public static void mostrarVentana() {
             }
 
             con.commit();
-            JOptionPane.showMessageDialog(this, "Pedido preparado correctamente.\nEmpleado: " +
-                    empleado.codigo + " - " + empleado.nombre);
+            JOptionPane.showMessageDialog(this,
+                "Pedido preparado correctamente.\nEntregó: " + entregador.codigo + " - " + entregador.nombre +
+                "\nRecibió: " + solicitante.codigo + " - " + solicitante.nombre);
             limpiarTodo();
 
         } catch (Exception ex) {
@@ -369,6 +364,7 @@ public static void mostrarVentana() {
     private void limpiarTodo() {
         txtBuscarProducto.setText("");
         campoEmpleadoSolicitante.limpiar();
+        campoEmpleadoEntregador.limpiar();
         carrito.clear();
         actualizarTablaPedido();
         txtBuscarProducto.requestFocusInWindow();
@@ -392,9 +388,7 @@ public static void mostrarVentana() {
         if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
             try {
                 int cantidad = Integer.parseInt(cantidadStr.trim());
-                if (cantidad <= 0) {
-                    throw new NumberFormatException();
-                }
+                if (cantidad <= 0) throw new NumberFormatException();
                 agregarAlPedido(id, codigo, modelo, cantidad);
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Cantidad inválida.");

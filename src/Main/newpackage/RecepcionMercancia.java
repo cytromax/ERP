@@ -1,6 +1,7 @@
 package Main.newpackage;
 
 import conexion.ConexionDB;
+import Main.newpackage.Components.EmpleadoScanField;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -12,20 +13,20 @@ import javax.swing.event.DocumentEvent;
 
 public class RecepcionMercancia extends JFrame {
     // --- INICIO: Singleton para evitar varias ventanas ---
-private static RecepcionMercancia instanciaUnica = null;
+    private static RecepcionMercancia instanciaUnica = null;
 
-public static void mostrarVentana() {
-    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
-        instanciaUnica = new RecepcionMercancia();
+    public static void mostrarVentana() {
+        if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+            instanciaUnica = new RecepcionMercancia();
+        }
+        instanciaUnica.setVisible(true);
+        instanciaUnica.toFront();
+        instanciaUnica.requestFocus();
     }
-    instanciaUnica.setVisible(true);
-    instanciaUnica.toFront();
-    instanciaUnica.requestFocus();
-}
-// --- FIN ---
-
+    // --- FIN ---
 
     private JTextField txtBuscarProducto, txtProveedor;
+    private EmpleadoScanField campoEmpleadoRecibio;
     private JTable tablaRecepcion;
     private DefaultTableModel modeloRecepcion;
     private final List<ItemRecepcion> carrito = new ArrayList<>();
@@ -74,7 +75,6 @@ public static void mostrarVentana() {
         });
 
         panelBusqueda.add(btnBuscar);
-
         add(panelBusqueda, BorderLayout.NORTH);
 
         // --- Tabla de productos agregados a la recepción ---
@@ -97,28 +97,51 @@ public static void mostrarVentana() {
             }
         });
 
-        // --- Panel inferior: empleado y finalizar ---
-        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
-        panelInferior.setBackground(new Color(38, 41, 48));
-       JLabel lblProveedor = new JLabel("Proveedor:");
+        // --- Panel inferior: proveedor, empleado que recibe y finalizar ---
+  
+        JPanel panelInferior = new JPanel(new GridBagLayout());
+panelInferior.setBackground(new Color(38, 41, 48));
+GridBagConstraints gbc = new GridBagConstraints();
+gbc.insets = new Insets(4, 10, 4, 10);
+gbc.gridy = 0;
+gbc.fill = GridBagConstraints.HORIZONTAL;
+
+// Proveedor
+gbc.gridx = 0; gbc.weightx = 0;
+JLabel lblProveedor = new JLabel("Proveedor:");
 lblProveedor.setForeground(new Color(200, 230, 255));
-txtProveedor = new JTextField(18);
-panelInferior.add(lblProveedor);
-panelInferior.add(txtProveedor);
-        JButton btnFinalizar = new JButton("Finalizar recepción");
-        JButton btnLimpiar = new JButton("Limpiar");
+panelInferior.add(lblProveedor, gbc);
 
-        btnFinalizar.setBackground(new Color(22, 160, 100));
-        btnFinalizar.setForeground(Color.WHITE);
-        btnFinalizar.addActionListener(e -> finalizarRecepcion());
+gbc.gridx = 1; gbc.weightx = 1;
+txtProveedor = new JTextField();
+panelInferior.add(txtProveedor, gbc);
 
-        btnLimpiar.addActionListener(e -> limpiarTodo());
+// Empleado que recibe
+gbc.gridx = 2; gbc.weightx = 0;
+JLabel lblEmpleado = new JLabel("Empleado que recibe:");
+lblEmpleado.setForeground(new Color(200, 230, 255));
+panelInferior.add(lblEmpleado, gbc);
 
-     
-        panelInferior.add(btnFinalizar);
-        panelInferior.add(btnLimpiar);
+gbc.gridx = 3; gbc.weightx = 1;
+campoEmpleadoRecibio = new EmpleadoScanField();
+campoEmpleadoRecibio.setEmpleados(obtenerListaEmpleados());
+panelInferior.add(campoEmpleadoRecibio, gbc);
 
-        add(panelInferior, BorderLayout.SOUTH);
+// Segunda fila para botones
+gbc.gridy = 1; gbc.gridx = 1; gbc.weightx = 0; gbc.gridwidth = 1;
+JButton btnFinalizar = new JButton("Finalizar recepción");
+btnFinalizar.setBackground(new Color(22, 160, 100));
+btnFinalizar.setForeground(Color.WHITE);
+btnFinalizar.addActionListener(e -> finalizarRecepcion());
+panelInferior.add(btnFinalizar, gbc);
+
+gbc.gridx = 2; gbc.gridwidth = 1;
+JButton btnLimpiar = new JButton("Limpiar");
+btnLimpiar.addActionListener(e -> limpiarTodo());
+panelInferior.add(btnLimpiar, gbc);
+
+add(panelInferior, BorderLayout.SOUTH);
+
 
         // Buscar producto con Enter
         txtBuscarProducto.addActionListener(e -> buscarProducto());
@@ -261,71 +284,100 @@ panelInferior.add(txtProveedor);
         }
     }
 
+    // Obtener lista de empleados desde BD
+    private List<EmpleadoScanField.EmpleadoItem> obtenerListaEmpleados() {
+        List<EmpleadoScanField.EmpleadoItem> lista = new ArrayList<>();
+        try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(
+                "SELECT id, nombre, codigo_empleado FROM empleados ORDER BY nombre")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(new EmpleadoScanField.EmpleadoItem(
+                            rs.getInt("id"),
+                            rs.getString("nombre"),
+                            rs.getString("codigo_empleado")
+                    ));
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return lista;
+    }
+
     private void finalizarRecepcion() {
-    if (carrito.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "No hay productos en la recepción.");
-        return;
-    }
-    String proveedor = txtProveedor.getText().trim();
-    if (proveedor.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "Debes capturar el proveedor.");
-        txtProveedor.requestFocusInWindow();
-        return;
-    }
+        if (carrito.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay productos en la recepción.");
+            return;
+        }
+        String proveedor = txtProveedor.getText().trim();
+        if (proveedor.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Debes capturar el proveedor.");
+            txtProveedor.requestFocusInWindow();
+            return;
+        }
+        // --- NUEVO: Validar empleado que recibe ---
+        EmpleadoScanField.EmpleadoItem empleadoRecibio = campoEmpleadoRecibio.getEmpleadoSeleccionado();
+        if (empleadoRecibio == null) {
+            JOptionPane.showMessageDialog(this, "Debes escanear un empleado que recibe.");
+            campoEmpleadoRecibio.requestFocusInWindow();
+            return;
+        }
+        int idEmpleadoRecibio = empleadoRecibio.id;
 
-    try (Connection con = ConexionDB.conectar()) {
-        con.setAutoCommit(false);
+        try (Connection con = ConexionDB.conectar()) {
+            con.setAutoCommit(false);
 
-        for (ItemRecepcion item : carrito) {
-            int existenciaAntes = 0;
-            try (PreparedStatement ps = con.prepareStatement(
-                    "SELECT existencia FROM productos WHERE id = ?")) {
-                ps.setInt(1, item.id);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        existenciaAntes = rs.getInt("existencia");
+            for (ItemRecepcion item : carrito) {
+                int existenciaAntes = 0;
+                try (PreparedStatement ps = con.prepareStatement(
+                        "SELECT existencia FROM productos WHERE id = ?")) {
+                    ps.setInt(1, item.id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            existenciaAntes = rs.getInt("existencia");
+                        }
                     }
+                }
+
+                int existenciaDespues = existenciaAntes + item.cantidad;
+
+                try (PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO movimientos "
+                        + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, proveedor, id_empleado) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?)")) {
+                    ps.setInt(1, item.id);
+                    ps.setInt(2, existenciaAntes);
+                    ps.setString(3, "entrada");
+                    ps.setInt(4, item.cantidad);
+                    ps.setInt(5, existenciaDespues);
+                    ps.setString(6, System.getProperty("user.name"));
+                    ps.setString(7, proveedor);
+                    ps.setInt(8, idEmpleadoRecibio);
+                    ps.executeUpdate();
+                }
+
+                try (PreparedStatement ps2 = con.prepareStatement(
+                        "UPDATE productos SET existencia = ? WHERE id = ?")) {
+                    ps2.setInt(1, existenciaDespues);
+                    ps2.setInt(2, item.id);
+                    ps2.executeUpdate();
                 }
             }
 
-            int existenciaDespues = existenciaAntes + item.cantidad;
+            con.commit();
+            JOptionPane.showMessageDialog(this, "Recepción registrada correctamente.\nProveedor: " + proveedor);
+            limpiarTodo();
 
-            try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO movimientos "
-                    + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, proveedor) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?)")) {
-                ps.setInt(1, item.id);
-                ps.setInt(2, existenciaAntes);
-                ps.setString(3, "entrada");
-                ps.setInt(4, item.cantidad);
-                ps.setInt(5, existenciaDespues);
-                ps.setString(6, System.getProperty("user.name"));
-                ps.setString(7, proveedor);
-                ps.executeUpdate();
-            }
-
-            try (PreparedStatement ps2 = con.prepareStatement(
-                    "UPDATE productos SET existencia = ? WHERE id = ?")) {
-                ps2.setInt(1, existenciaDespues);
-                ps2.setInt(2, item.id);
-                ps2.executeUpdate();
-            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al registrar la entrada: " + ex.getMessage());
         }
-
-        con.commit();
-        JOptionPane.showMessageDialog(this, "Recepción registrada correctamente.\nProveedor: " + proveedor);
-        limpiarTodo();
-
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error al registrar la entrada: " + ex.getMessage());
     }
-}
-
 
     private void limpiarTodo() {
         txtBuscarProducto.setText("");
-            
+        txtProveedor.setText("");
+        campoEmpleadoRecibio.limpiar();
         carrito.clear();
         actualizarTablaRecepcion();
         txtBuscarProducto.requestFocusInWindow();

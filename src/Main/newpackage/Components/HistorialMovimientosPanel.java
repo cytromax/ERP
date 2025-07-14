@@ -68,15 +68,28 @@ public class HistorialMovimientosPanel extends JPanel {
 
         add(panelFiltros, BorderLayout.NORTH);
 
-        // Modelo y tabla
+        // MODELO con todas las columnas, respeta el orden
         modelo = new DefaultTableModel(
             new String[]{
                 "ID Movimiento", "ID Producto", "Código", "Modelo",
                 "Existencia antes", "Tipo", "Cantidad", "Existencia después",
-                "Empleado", "Proveedor", "Usuario", "Fecha", "Núm. Pedido"
+                "Entregó", "Recibió", "Proveedor", "Usuario", "Fecha", "Núm. Pedido"
             }, 0
         );
         tabla = new JTable(modelo);
+
+        // OCULTAR solo en la vista (deja el modelo igual)
+        TableColumnModel columnModel = tabla.getColumnModel();
+        columnModel.getColumn(0).setMinWidth(0);
+        columnModel.getColumn(0).setMaxWidth(0);
+        columnModel.getColumn(0).setPreferredWidth(0);
+        columnModel.getColumn(0).setResizable(false);
+
+        columnModel.getColumn(1).setMinWidth(0);
+        columnModel.getColumn(1).setMaxWidth(0);
+        columnModel.getColumn(1).setPreferredWidth(0);
+        columnModel.getColumn(1).setResizable(false);
+
         ajustarColumnas();
 
         JScrollPane scroll = new JScrollPane(tabla);
@@ -95,8 +108,8 @@ public class HistorialMovimientosPanel extends JPanel {
 
     private void ajustarColumnas() {
         TableColumnModel columnModel = tabla.getColumnModel();
-        int[] anchos = {80, 80, 120, 250, 100, 70, 70, 120, 180, 180, 100, 130, 100};
-        for (int i = 0; i < anchos.length; i++) {
+        int[] anchos = {0, 0, 120, 250, 100, 70, 70, 120, 160, 160, 180, 100, 130, 100};
+        for (int i = 2; i < anchos.length; i++) { // Empieza en 2 porque 0 y 1 son ocultos
             if (i < columnModel.getColumnCount()) {
                 columnModel.getColumn(i).setPreferredWidth(anchos[i]);
             }
@@ -111,8 +124,6 @@ public class HistorialMovimientosPanel extends JPanel {
         Date fechaHasta = (Date) spinnerFechaHasta.getValue();
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        String fechaDesdeStr = sdf.format(fechaDesde);
-        String fechaHastaStr = sdf.format(fechaHasta);
 
         modelo.setRowCount(0);
 
@@ -121,13 +132,15 @@ public class HistorialMovimientosPanel extends JPanel {
                 m.id, m.id_producto, p.codigo_barras, p.modelo, 
                 m.existencia_antes, m.tipo, m.cantidad, 
                 m.existencia_despues, 
-                COALESCE(e.codigo_empleado || ' - ' || e.nombre, 'N/A') AS empleado,
+                COALESCE(e1.codigo_empleado || ' - ' || e1.nombre, 'N/A') AS entrego,
+                COALESCE(e2.codigo_empleado || ' - ' || e2.nombre, 'N/A') AS recibio,
                 COALESCE(m.proveedor, 'N/A') AS proveedor,
                 m.usuario, m.fecha,
                 COALESCE(m.numero_pedido, '') AS numero_pedido
             FROM movimientos m 
             JOIN productos p ON m.id_producto = p.id 
-            LEFT JOIN empleados e ON m.id_empleado = e.id
+            LEFT JOIN empleados e1 ON m.id_empleado_entregador = e1.id
+            LEFT JOIN empleados e2 ON m.id_empleado = e2.id
             WHERE (p.codigo_barras ILIKE ? OR p.modelo ILIKE ?)
               AND (? = '' OR m.numero_pedido ILIKE ?)
               AND (? = 'Todos' OR LOWER(m.tipo) = LOWER(?))
@@ -163,7 +176,8 @@ public class HistorialMovimientosPanel extends JPanel {
                     rs.getString("tipo"),
                     rs.getDouble("cantidad"),
                     rs.getDouble("existencia_despues"),
-                    rs.getString("empleado"),
+                    rs.getString("entrego"),
+                    rs.getString("recibio"),
                     rs.getString("proveedor"),
                     rs.getString("usuario"),
                     fechaFormateada,

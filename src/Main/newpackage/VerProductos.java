@@ -27,9 +27,7 @@ public class VerProductos extends JFrame {
     private static String usuarioUnico = null;
     private static String rolUnico = null;
 
-    // Método para mostrar la ventana (usa singleton)
     public static void mostrarVentana(String usuario, String rol) {
-        // Solo una ventana activa por usuario/rol, o si la ventana fue cerrada
         if (instanciaUnica == null || !instanciaUnica.isDisplayable() ||
                 !usuario.equals(usuarioUnico) || !rol.equals(rolUnico)) {
             instanciaUnica = new VerProductos(usuario, rol);
@@ -41,7 +39,6 @@ public class VerProductos extends JFrame {
         instanciaUnica.requestFocus();
     }
 
-    // Constructor PRIVADO: fuerza uso de mostrarVentana
     private VerProductos(String usuarioActual, String rolActual) {
         this.usuarioActual = usuarioActual;
         this.rolActual = rolActual;
@@ -61,7 +58,6 @@ public class VerProductos extends JFrame {
         cargarProductos();
     }
 
-    // HEADER con logo y botones (¡ya incluye "Ver Gráficas"!)
     private JPanel crearPanelHeader() {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
@@ -88,25 +84,40 @@ public class VerProductos extends JFrame {
         } catch (IOException e) { System.err.println("Logo error: " + e.getMessage()); }
         panel.add(lblLogo, BorderLayout.NORTH);
 
-        JPanel panelBotones = new JPanel(new GridLayout(2, 7, 18, 10));
+        JPanel panelBotones = new JPanel(new GridLayout(2, 5, 18, 10));
         panelBotones.setOpaque(false);
-        String[] botones = {
-            "Entradas/Salidas", "Entregar Productos", "Recibir Productos",
-            "Agregar Producto", "Historial de Movimientos", "Imprimir Cód. Barras",
-            "Ajuste de Inventario", "Historial de Ajustes", "Editar Producto",
-            "Eliminar Producto", "Ver Gráficas", "Salir"
-        };
-        java.awt.event.ActionListener[] acciones = {
-            e -> abrirMovimientoProductos(), e -> abrirPrepararPedido(), e -> abrirRecepcionMercancia(),
-            e -> abrirGestionProductos(), e -> abrirHistorialMovimientos(), e -> new ImprimirCodigoBarras().setVisible(true),
-            e -> abrirAjusteInventario(), e -> abrirHistorialAjustes(), e -> abrirEditarProducto(),
-            e -> eliminarProducto(), e -> abrirGraficas(), e -> dispose()
-        };
-        int totalBotones = rolActual.equalsIgnoreCase("administrador") ? botones.length : 7;
-        for (int i = 0; i < totalBotones; i++) {
-            JButton btn = crearBotonBarra(botones[i], acciones[i]);
-            panelBotones.add(btn);
-        }
+        String[] botones =  {
+    "Entregar Productos",       // 0
+    "Recibir Productos",        // 1
+    "Agregar Producto",         // 2
+    "Historial de Movimientos", // 3
+    "Imprimir Cód. Barras",     // 4
+
+    "Ajuste de Inventario",     // 5
+    "Historial de Ajustes",     // 6
+    "Ver Gráficas",             // 7
+    "Salir"                     // 8
+};
+
+java.awt.event.ActionListener[] acciones = {
+    e -> abrirPrepararPedido(),        // Entregar Productos
+    e -> abrirRecepcionMercancia(),             // Recibir Productos
+    e -> abrirGestionProductos(),           // Agregar Producto
+    e -> abrirHistorialMovimientos(),       // Historial de Movimientos
+    e -> new ImprimirCodigoBarras().setVisible(true), // Imprimir Cód. Barras
+
+    e -> abrirAjusteInventario(),           // Ajuste de Inventario
+    e -> abrirHistorialAjustes(),           // Historial de Ajustes
+    e -> abrirGraficas(),                   // Ver Gráficas
+    e -> dispose()                          // Salir
+};
+
+for (int i = 0; i < botones.length; i++) {
+    JButton btn = crearBotonBarra(botones[i], acciones[i]);
+    panelBotones.add(btn);
+}
+
+
         panel.add(panelBotones, BorderLayout.CENTER);
         return panel;
     }
@@ -166,9 +177,11 @@ public class VerProductos extends JFrame {
 
     private JScrollPane crearTablaProductos() {
         modelo = new DefaultTableModel() {
-            @Override public boolean isCellEditable(int row, int col) { return false; }
+            @Override public boolean isCellEditable(int row, int col) {
+                return col == 5 || col == 6; // Solo botones
+            }
         };
-        String[] cols = {"ID", "Código de barras", "Descripción", "Existencia", "Unidad", "Ubicación"};
+        String[] cols = {"Código de barras", "Descripción", "Existencia", "Unidad", "Ubicación", "Editar", "Eliminar"};
         for (String c : cols) modelo.addColumn(c);
 
         tabla = new JTable(modelo);
@@ -184,7 +197,14 @@ public class VerProductos extends JFrame {
         tabla.setGridColor(new Color(70, 80, 100, 40));
         tabla.setIntercellSpacing(new Dimension(0, 1));
 
-        tabla.getColumnModel().getColumn(3).setCellRenderer(new ColorCantidadRenderer());
+        tabla.getColumnModel().getColumn(2).setCellRenderer(new ColorCantidadRenderer());
+
+        tabla.getColumn("Editar").setCellRenderer(new ButtonRenderer("Editar"));
+        tabla.getColumn("Editar").setCellEditor(
+            new ButtonEditor(new JCheckBox(), "Editar", tabla, this));
+        tabla.getColumn("Eliminar").setCellRenderer(new ButtonRenderer("Eliminar"));
+        tabla.getColumn("Eliminar").setCellEditor(
+            new ButtonEditor(new JCheckBox(), "Eliminar", tabla, this));
 
         JScrollPane scroll = new JScrollPane(tabla);
         scroll.setBorder(new CompoundBorder(
@@ -232,12 +252,13 @@ public class VerProductos extends JFrame {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         modelo.addRow(new Object[]{
-                            rs.getInt("id"),
                             rs.getString("codigo_barras"),
                             rs.getString("modelo"),
                             rs.getDouble("existencia"),
                             rs.getString("unidad"),
-                            rs.getString("ubicacion")
+                            rs.getString("ubicacion"),
+                            "Editar",
+                            "Eliminar"
                         });
                     }
                 }
@@ -247,36 +268,36 @@ public class VerProductos extends JFrame {
         });
     }
 
-    // Métodos de apertura de ventanas...
-    private void abrirMovimientoProductos() { MovimientoProductos.mostrarVentana(rolActual, usuarioActual); }
-    private void abrirPrepararPedido()      { PrepararPedido.mostrarVentana();      }
-    private void abrirRecepcionMercancia()  { RecepcionMercancia.mostrarVentana();  }
-    private void abrirGestionProductos()    { GestionProductos.mostrarVentana();    }
+    // Métodos para abrir otras ventanas
+    
+    private void abrirPrepararPedido()      { PrepararPedido.mostrarVentana(); }
+    private void abrirRecepcionMercancia()  { RecepcionMercancia.mostrarVentana(); }
+    private void abrirGestionProductos()    { GestionProductos.mostrarVentana(); }
     private void abrirHistorialMovimientos(){ HistorialMovimientos.mostrarVentana(); }
     private void abrirAjusteInventario()    { AjusteInventario.mostrarVentana(usuarioActual, rolActual);}
-    private void abrirHistorialAjustes()    { HistorialAjustes.mostrarVentana();    }
-    private void abrirEditarProducto() {
-        int selectedRow = tabla.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un producto para editar.");
+    private void abrirHistorialAjustes()    { HistorialAjustes.mostrarVentana(); }
+    private void abrirGraficas()            { VentanaGraficas.mostrarVentana(); }
+
+    // Métodos para los botones de la tabla
+    public void abrirEditarProducto(int row) {
+        String codigoBarras = modelo.getValueAt(row, 0).toString();
+        int idProducto = obtenerIdPorCodigoBarras(codigoBarras);
+        if (idProducto == -1) {
+            JOptionPane.showMessageDialog(this, "No se encontró el producto.");
             return;
         }
-        int idProducto = (int) modelo.getValueAt(selectedRow, 0);
         EditarProducto dialog = new EditarProducto(idProducto, usuarioActual, rolActual);
         dialog.setVisible(true);
         cargarProductos();
     }
-    private void abrirGraficas() {
-        VentanaGraficas.mostrarVentana();
-    }
-    private void eliminarProducto() {
-        int selectedRow = tabla.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un producto para eliminar.");
+
+    public void eliminarProducto(int row) {
+        String codigoBarras = modelo.getValueAt(row, 0).toString();
+        int idProducto = obtenerIdPorCodigoBarras(codigoBarras);
+        if (idProducto == -1) {
+            JOptionPane.showMessageDialog(this, "No se encontró el producto.");
             return;
         }
-
-        int idProducto = (int) modelo.getValueAt(selectedRow, 0);
 
         int confirm = JOptionPane.showConfirmDialog(
             this,
@@ -291,26 +312,11 @@ public class VerProductos extends JFrame {
         }
 
         try (Connection con = ConexionDB.conectar()) {
-            String sqlSelect = "SELECT codigo_barras, modelo, unidad, ubicacion FROM productos WHERE id = ?";
-            String codigo = "", modeloProd = "", unidad = "", ubicacion = "";
-            try (PreparedStatement ps = con.prepareStatement(sqlSelect)) {
-                ps.setInt(1, idProducto);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        codigo = rs.getString("codigo_barras");
-                        modeloProd = rs.getString("modelo");
-                        unidad = rs.getString("unidad");
-                        ubicacion = rs.getString("ubicacion");
-                    }
-                }
-            }
-
             String sqlDelete = "DELETE FROM productos WHERE id = ?";
             try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
                 ps.setInt(1, idProducto);
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
-                    // Puedes guardar historial aquí si tienes la tabla
                     JOptionPane.showMessageDialog(this, "Producto eliminado correctamente.");
                 } else {
                     JOptionPane.showMessageDialog(this, "No se pudo eliminar el producto.");
@@ -322,7 +328,18 @@ public class VerProductos extends JFrame {
         cargarProductos();
     }
 
-    private void cargarProductos()          { buscarProductos(""); }
+    private int obtenerIdPorCodigoBarras(String codigoBarras) {
+        try (Connection con = ConexionDB.conectar();
+             PreparedStatement ps = con.prepareStatement("SELECT id FROM productos WHERE codigo_barras = ?")) {
+            ps.setString(1, codigoBarras);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("id");
+            }
+        } catch (Exception e) { }
+        return -1;
+    }
+
+    private void cargarProductos() { buscarProductos(""); }
 
     private BufferedImage reemplazarTonosOscurosPorBlanco(BufferedImage img) {
         int w = img.getWidth(), h = img.getHeight();
@@ -388,6 +405,70 @@ public class VerProductos extends JFrame {
             insets.left = insets.right = 8;
             insets.top = insets.bottom = 4;
             return insets;
+        }
+    }
+
+    // --- Renderers y editores para botones en tabla ---
+    static class ButtonRenderer extends JButton implements TableCellRenderer {
+        public ButtonRenderer(String label) {
+            setText(label);
+            setOpaque(true);
+            setBackground(new Color(30, 119, 200));
+            setForeground(Color.WHITE);
+            setFont(new Font("Segoe UI", Font.BOLD, 13));
+        }
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+            return this;
+        }
+    }
+
+    static class ButtonEditor extends DefaultCellEditor {
+        private JButton button;
+        private String label;
+        private boolean isPushed;
+        private JTable table;
+        private VerProductos parent;
+
+        public ButtonEditor(JCheckBox checkBox, String label, JTable table, VerProductos parent) {
+            super(checkBox);
+            this.button = new JButton(label);
+            this.label = label;
+            this.table = table;
+            this.parent = parent;
+
+            button.setBackground(new Color(30, 119, 200));
+            button.setForeground(Color.WHITE);
+            button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            button.addActionListener(e -> fireEditingStopped());
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected,
+                int row, int column) {
+            isPushed = true;
+            return button;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            if (isPushed) {
+                int row = table.getSelectedRow();
+                if (label.equals("Editar")) {
+                    parent.abrirEditarProducto(row);
+                } else if (label.equals("Eliminar")) {
+                    parent.eliminarProducto(row);
+                }
+            }
+            isPushed = false;
+            return label;
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            isPushed = false;
+            return super.stopCellEditing();
         }
     }
 }
