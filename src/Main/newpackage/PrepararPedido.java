@@ -10,8 +10,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.event.DocumentEvent;
+import Main.newpackage.SessionManager;
 
 public class PrepararPedido extends JFrame {
+
     // --- INICIO: Singleton para evitar varias ventanas ---
     private static PrepararPedido instanciaUnica = null;
 
@@ -54,18 +56,33 @@ public class PrepararPedido extends JFrame {
 
         txtBuscarProducto.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             private void debounceBuscar() {
-                if (debounceTimer != null) debounceTimer.stop();
-                debounceTimer = new Timer(250, e -> {
+                if (debounceTimer != null) {
+                    debounceTimer.stop();
+                }
+                debounceTimer = new Timer(1000, e -> {
                     String texto = txtBuscarProducto.getText().trim();
-                    if (!texto.isEmpty()) buscarProductoPorCodigo(texto);
+                    if (!texto.isEmpty()) {
+                        buscarProductoPorCodigo(texto);
+                    }
                 });
                 debounceTimer.setRepeats(false);
                 debounceTimer.start();
             }
 
-            @Override public void insertUpdate(DocumentEvent e) { debounceBuscar(); }
-            @Override public void removeUpdate(DocumentEvent e) { debounceBuscar(); }
-            @Override public void changedUpdate(DocumentEvent e) { debounceBuscar(); }
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                debounceBuscar();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                debounceBuscar();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                debounceBuscar();
+            }
         });
 
         panelBusqueda.add(btnBuscar);
@@ -73,7 +90,10 @@ public class PrepararPedido extends JFrame {
 
         // Tabla de productos agregados al pedido
         modeloPedido = new DefaultTableModel(new String[]{"ID", "Código", "Modelo", "Cantidad"}, 0) {
-            @Override public boolean isCellEditable(int row, int col) { return false; }
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
         tablaPedido = new JTable(modeloPedido);
         tablaPedido.setFont(new Font("Segoe UI", Font.PLAIN, 16));
@@ -99,36 +119,44 @@ public class PrepararPedido extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Empleado que entrega:
-        gbc.gridx = 0; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.weightx = 0;
         JLabel lblEmpEntregador = new JLabel("Empleado que entrega:");
         lblEmpEntregador.setForeground(new Color(200, 230, 255));
         panelInferior.add(lblEmpEntregador, gbc);
 
-        gbc.gridx = 1; gbc.weightx = 1;
+        gbc.gridx = 1;
+        gbc.weightx = 1;
         campoEmpleadoEntregador = new EmpleadoScanField();
         campoEmpleadoEntregador.setEmpleados(obtenerListaEmpleados());
         panelInferior.add(campoEmpleadoEntregador, gbc);
 
         // Empleado que recibe:
-        gbc.gridx = 2; gbc.weightx = 0;
+        gbc.gridx = 2;
+        gbc.weightx = 0;
         JLabel lblEmpSolicitante = new JLabel("Empleado que recibe:");
         lblEmpSolicitante.setForeground(new Color(200, 230, 255));
         panelInferior.add(lblEmpSolicitante, gbc);
 
-        gbc.gridx = 3; gbc.weightx = 1;
+        gbc.gridx = 3;
+        gbc.weightx = 1;
         campoEmpleadoSolicitante = new EmpleadoScanField();
         campoEmpleadoSolicitante.setEmpleados(obtenerListaEmpleados());
         panelInferior.add(campoEmpleadoSolicitante, gbc);
 
         // Segunda fila (los botones)
-        gbc.gridy = 1; gbc.gridx = 0; gbc.gridwidth = 2; gbc.weightx = 0;
+        gbc.gridy = 1;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0;
         JButton btnFinalizar = new JButton("Finalizar pedido");
         btnFinalizar.setBackground(new Color(22, 160, 100));
         btnFinalizar.setForeground(Color.WHITE);
         btnFinalizar.addActionListener(e -> finalizarPedido());
         panelInferior.add(btnFinalizar, gbc);
 
-        gbc.gridx = 2; gbc.gridwidth = 2;
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
         JButton btnLimpiar = new JButton("Limpiar pedido");
         btnLimpiar.addActionListener(e -> limpiarTodo());
         panelInferior.add(btnLimpiar, gbc);
@@ -142,7 +170,9 @@ public class PrepararPedido extends JFrame {
     // ---------- Lógica principal -----------
     private void buscarProducto() {
         String query = txtBuscarProducto.getText().trim();
-        if (query.isEmpty()) return;
+        if (query.isEmpty()) {
+            return;
+        }
         try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(
                 "SELECT id, codigo_barras, modelo FROM productos WHERE codigo_barras = ? OR modelo ILIKE ?")) {
             ps.setString(1, query);
@@ -156,7 +186,9 @@ public class PrepararPedido extends JFrame {
                             "Producto: " + modelo + " (" + codigo + ")\nIngresa la cantidad:", "Cantidad", JOptionPane.PLAIN_MESSAGE);
                     if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
                         int cantidad = Integer.parseInt(cantidadStr.trim());
-                        if (cantidad <= 0) throw new NumberFormatException();
+                        if (cantidad <= 0) {
+                            throw new NumberFormatException();
+                        }
                         agregarAlPedido(id, codigo, modelo, cantidad);
                     }
                 } else {
@@ -254,7 +286,9 @@ public class PrepararPedido extends JFrame {
 
     private void editarCantidadPedido() {
         int row = tablaPedido.getSelectedRow();
-        if (row == -1) return;
+        if (row == -1) {
+            return;
+        }
         ItemPedido item = carrito.get(row);
         String cantidadStr = JOptionPane.showInputDialog(this,
                 "Editar cantidad para: " + item.modelo + " (" + item.codigo + ")",
@@ -262,7 +296,9 @@ public class PrepararPedido extends JFrame {
         if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
             try {
                 int cantidad = Integer.parseInt(cantidadStr.trim());
-                if (cantidad <= 0) throw new NumberFormatException();
+                if (cantidad <= 0) {
+                    throw new NumberFormatException();
+                }
                 item.cantidad = cantidad;
                 actualizarTablaPedido();
             } catch (NumberFormatException e) {
@@ -292,93 +328,97 @@ public class PrepararPedido extends JFrame {
     }
 
     private void finalizarPedido() {
-    if (carrito.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "No hay productos en el pedido.");
-        return;
-    }
-    EmpleadoScanField.EmpleadoItem entregador = campoEmpleadoEntregador.getEmpleadoSeleccionado();
-    if (entregador == null) {
-        JOptionPane.showMessageDialog(this, "Debes escanear el empleado que ENTREGA.");
-        campoEmpleadoEntregador.requestFocusInWindow();
-        return;
-    }
-    EmpleadoScanField.EmpleadoItem solicitante = campoEmpleadoSolicitante.getEmpleadoSeleccionado();
-    if (solicitante == null) {
-        JOptionPane.showMessageDialog(this, "Debes escanear el empleado que RECIBE.");
-        campoEmpleadoSolicitante.requestFocusInWindow();
-        return;
-    }
-    int idEntregador = entregador.id;
-    int idSolicitante = solicitante.id;
+        if (carrito.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay productos en el pedido.");
+            return;
+        }
+        EmpleadoScanField.EmpleadoItem entregador = campoEmpleadoEntregador.getEmpleadoSeleccionado();
+        if (entregador == null) {
+            JOptionPane.showMessageDialog(this, "Debes escanear el empleado que ENTREGA.");
+            campoEmpleadoEntregador.requestFocusInWindow();
+            return;
+        }
+        EmpleadoScanField.EmpleadoItem solicitante = campoEmpleadoSolicitante.getEmpleadoSeleccionado();
+        if (solicitante == null) {
+            JOptionPane.showMessageDialog(this, "Debes escanear el empleado que RECIBE.");
+            campoEmpleadoSolicitante.requestFocusInWindow();
+            return;
+        }
+        int idEntregador = entregador.id;
+        int idSolicitante = solicitante.id;
 
-    // Nuevo: Preguntar por número de pedido
-    String numeroPedido = "";
-    int respuesta = JOptionPane.showConfirmDialog(this,
-            "¿Cuentas con número de pedido? (Si no tienes, presiona No)",
-            "Número de Pedido", JOptionPane.YES_NO_OPTION);
+        // Nuevo: Preguntar por número de pedido
+        String numeroPedido = "";
+        int respuesta = JOptionPane.showConfirmDialog(this,
+                "¿Cuentas con número de pedido? (Si no tienes, presiona No)",
+                "Número de Pedido", JOptionPane.YES_NO_OPTION);
 
-    if (respuesta == JOptionPane.YES_OPTION) {
-        numeroPedido = JOptionPane.showInputDialog(this, "Ingresa el número de pedido:", "Número de Pedido", JOptionPane.QUESTION_MESSAGE);
-        if (numeroPedido == null) numeroPedido = ""; // Si cancela, dejarlo vacío
-    }
-    // Si seleccionó NO, numeroPedido queda en blanco
-
-    try (Connection con = ConexionDB.conectar()) {
-        con.setAutoCommit(false);
-
-        for (ItemPedido item : carrito) {
-            int existenciaAntes = 0;
-            try (PreparedStatement ps = con.prepareStatement(
-                    "SELECT existencia FROM productos WHERE id = ?")) {
-                ps.setInt(1, item.id);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) existenciaAntes = rs.getInt("existencia");
-                }
-            }
-            int existenciaDespues = existenciaAntes - item.cantidad;
-
-            // Insertar con número de pedido (puede ser vacío)
-            try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO movimientos "
-                    + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, id_empleado_entregador, id_empleado_solicitante, numero_pedido) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)")) {
-                ps.setInt(1, item.id);
-                ps.setInt(2, existenciaAntes);
-                ps.setString(3, "salida");
-                ps.setInt(4, item.cantidad);
-                ps.setInt(5, existenciaDespues);
-                ps.setString(6, System.getProperty("user.name"));
-                ps.setInt(7, idEntregador);
-                ps.setInt(8, idSolicitante);
-                if (numeroPedido == null || numeroPedido.trim().isEmpty()) {
-                    ps.setNull(9, java.sql.Types.VARCHAR);
-                } else {
-                    ps.setString(9, numeroPedido.trim());
-                }
-                ps.executeUpdate();
-            }
-            try (PreparedStatement ps2 = con.prepareStatement(
-                    "UPDATE productos SET existencia = ? WHERE id = ?")) {
-                ps2.setInt(1, existenciaDespues);
-                ps2.setInt(2, item.id);
-                ps2.executeUpdate();
+        if (respuesta == JOptionPane.YES_OPTION) {
+            numeroPedido = JOptionPane.showInputDialog(this, "Ingresa el número de pedido:", "Número de Pedido", JOptionPane.QUESTION_MESSAGE);
+            if (numeroPedido == null) {
+                numeroPedido = ""; // Si cancela, dejarlo vacío
             }
         }
+        // Si seleccionó NO, numeroPedido queda en blanco
 
-        con.commit();
-        JOptionPane.showMessageDialog(this,
-            "Pedido preparado correctamente." +
-            (numeroPedido == null || numeroPedido.trim().isEmpty() ? "" : "\nFolio: " + numeroPedido) +
-            "\nEntregó: " + entregador.codigo + " - " + entregador.nombre +
-            "\nRecibió: " + solicitante.codigo + " - " + solicitante.nombre);
-        limpiarTodo();
+        try (Connection con = ConexionDB.conectar()) {
+            con.setAutoCommit(false);
 
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error al registrar la salida: " + ex.getMessage());
+            for (ItemPedido item : carrito) {
+                int existenciaAntes = 0;
+                try (PreparedStatement ps = con.prepareStatement(
+                        "SELECT existencia FROM productos WHERE id = ?")) {
+                    ps.setInt(1, item.id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            existenciaAntes = rs.getInt("existencia");
+                        }
+                    }
+                }
+                int existenciaDespues = existenciaAntes - item.cantidad;
+
+                // Insertar con número de pedido (puede ser vacío)
+                try (PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO movimientos "
+                        + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, id_empleado_entregador, id_empleado_solicitante, numero_pedido) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)")) {
+                    ps.setInt(1, item.id);
+                    ps.setInt(2, existenciaAntes);
+                    ps.setString(3, "salida");
+                    ps.setInt(4, item.cantidad);
+                    ps.setInt(5, existenciaDespues);
+                    ps.setString(6, SessionManager.getUsuario());
+
+                    ps.setInt(7, idEntregador);
+                    ps.setInt(8, idSolicitante);
+                    if (numeroPedido == null || numeroPedido.trim().isEmpty()) {
+                        ps.setNull(9, java.sql.Types.VARCHAR);
+                    } else {
+                        ps.setString(9, numeroPedido.trim());
+                    }
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps2 = con.prepareStatement(
+                        "UPDATE productos SET existencia = ? WHERE id = ?")) {
+                    ps2.setInt(1, existenciaDespues);
+                    ps2.setInt(2, item.id);
+                    ps2.executeUpdate();
+                }
+            }
+
+            con.commit();
+            JOptionPane.showMessageDialog(this,
+                    "Pedido preparado correctamente."
+                    + (numeroPedido == null || numeroPedido.trim().isEmpty() ? "" : "\nFolio: " + numeroPedido)
+                    + "\nEntregó: " + entregador.codigo + " - " + entregador.nombre
+                    + "\nRecibió: " + solicitante.codigo + " - " + solicitante.nombre);
+            limpiarTodo();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al registrar la salida: " + ex.getMessage());
+        }
     }
-}
-
 
     private void limpiarTodo() {
         txtBuscarProducto.setText("");
@@ -391,6 +431,7 @@ public class PrepararPedido extends JFrame {
 
     // ------ Clase auxiliar ------
     private static class ItemPedido {
+
         int id;
         String codigo, modelo;
         int cantidad;
@@ -407,7 +448,9 @@ public class PrepararPedido extends JFrame {
         if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
             try {
                 int cantidad = Integer.parseInt(cantidadStr.trim());
-                if (cantidad <= 0) throw new NumberFormatException();
+                if (cantidad <= 0) {
+                    throw new NumberFormatException();
+                }
                 agregarAlPedido(id, codigo, modelo, cantidad);
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Cantidad inválida.");

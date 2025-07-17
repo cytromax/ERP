@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 public class PanelTickets extends JPanel {
     private final Connection connection;
     private final String usuario;
-    private final String rol;
+    private final RolUsuario rol; // <- Cambiado a Enum
 
     private final JTable tabla;
     private final DefaultTableModel modelo;
@@ -25,7 +25,7 @@ public class PanelTickets extends JPanel {
     private JButton btnEliminar;
     private JButton btnSalir;
 
-    public PanelTickets(Connection connection, String usuario, String rol) {
+    public PanelTickets(Connection connection, String usuario, RolUsuario rol) { // <- Enum aquí
         this.connection = connection;
         this.usuario = usuario;
         this.rol = rol;
@@ -96,11 +96,11 @@ public class PanelTickets extends JPanel {
 
         add(panelBotones, BorderLayout.SOUTH);
 
-        // Control de roles
-        boolean esAdmin = rol.equalsIgnoreCase("administrador");
+        // Control de roles con Enum
+        boolean esAdmin = rol == RolUsuario.ADMINISTRADOR;
         btnEditar.setEnabled(esAdmin);
         btnEliminar.setEnabled(esAdmin);
-        btnCrear.setEnabled(esAdmin || rol.equalsIgnoreCase("empleado"));
+        btnCrear.setEnabled(esAdmin || rol == RolUsuario.TRABAJADOR); // Puedes agregar más roles si quieres
 
         // Eventos
         btnBuscar.addActionListener(e -> cargarTickets());
@@ -225,8 +225,8 @@ public class PanelTickets extends JPanel {
 
         btnGuardar.addActionListener(e -> {
             try {
-                // Validar permisos: solo admin puede editar, empleados solo crear
-                if (ticket != null && !rol.equalsIgnoreCase("administrador")) {
+                // Validar permisos: solo admin puede editar, trabajadores solo crear
+                if (ticket != null && rol != RolUsuario.ADMINISTRADOR) {
                     JOptionPane.showMessageDialog(dialog, "No tienes permisos para editar tickets.");
                     return;
                 }
@@ -276,7 +276,7 @@ public class PanelTickets extends JPanel {
     }
 
     private void editarTicket() {
-        if (!rol.equalsIgnoreCase("administrador")) {
+        if (rol != RolUsuario.ADMINISTRADOR) {
             JOptionPane.showMessageDialog(this, "No tienes permisos para editar tickets.");
             return;
         }
@@ -291,7 +291,7 @@ public class PanelTickets extends JPanel {
     }
 
     private void eliminarTicketSeleccionado() {
-        if (!rol.equalsIgnoreCase("administrador")) {
+        if (rol != RolUsuario.ADMINISTRADOR) {
             JOptionPane.showMessageDialog(this, "No tienes permisos para eliminar tickets.");
             return;
         }
@@ -349,7 +349,7 @@ public class PanelTickets extends JPanel {
     private void salir() {
         JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
         frame.dispose();
-        new SelectorDeArea(usuario, rol).setVisible(true);
+        new SelectorDeArea(usuario, rol).setVisible(true); // Enum directo
     }
 
     public static class Ticket {

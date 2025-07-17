@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SelectorDeArea extends JFrame {
-    public SelectorDeArea(String usuario, String rol) {
+    public SelectorDeArea(String usuario, RolUsuario rol) {  // <--- Recibe el Enum, no String
         setTitle("Selecciona un área – " + usuario);
         setSize(400, 300);
         setLocationRelativeTo(null);
@@ -18,7 +18,7 @@ public class SelectorDeArea extends JFrame {
         getContentPane().setBackground(new Color(32, 35, 40));
         setLayout(new BorderLayout(10, 10));
 
-        // --- Header con logo todo en blanco ---
+        // Header con logo
         JPanel panelHeader = new JPanel(new FlowLayout(FlowLayout.CENTER));
         panelHeader.setBackground(new Color(32, 35, 40));
         panelHeader.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
@@ -27,21 +27,15 @@ public class SelectorDeArea extends JFrame {
             try {
                 BufferedImage img = ImageIO.read(logoUrl);
                 int w = img.getWidth(), h = img.getHeight();
-                // Recolor: todos los píxeles no transparentes a blanco
-                for (int y = 0; y < h; y++) {
+                for (int y = 0; y < h; y++)
                     for (int x = 0; x < w; x++) {
                         int pixel = img.getRGB(x, y);
                         int alpha = (pixel >>> 24) & 0xFF;
-                        if (alpha != 0) {
-                            // blanco con alfa original
+                        if (alpha != 0)
                             img.setRGB(x, y, (alpha << 24) | 0x00FFFFFF);
-                        }
                     }
-                }
-                // Escalado proporcional: max 150×50
                 double scale = Math.min(150.0 / w, 50.0 / h);
-                int newW = (int) (w * scale);
-                int newH = (int) (h * scale);
+                int newW = (int) (w * scale), newH = (int) (h * scale);
                 Image scaled = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
                 panelHeader.add(new JLabel(new ImageIcon(scaled)));
             } catch (IOException e) {
@@ -50,7 +44,7 @@ public class SelectorDeArea extends JFrame {
         }
         add(panelHeader, BorderLayout.NORTH);
 
-        // --- Centro: texto y botones ---
+        // Centro: texto y botones según permisos
         JPanel panelCenter = new JPanel();
         panelCenter.setBackground(new Color(32, 35, 40));
         panelCenter.setLayout(new BoxLayout(panelCenter, BoxLayout.Y_AXIS));
@@ -65,28 +59,28 @@ public class SelectorDeArea extends JFrame {
 
         List<JButton> botonesVisibles = new ArrayList<>();
 
-        if (rol.equalsIgnoreCase("administrador") ||
-            rol.equalsIgnoreCase("editor") ||
-            rol.equalsIgnoreCase("lector")) {
+        // Área Almacén: visible para admin y trabajador
+        if (Permisos.puedeEntrarAlmacen(rol)) {
             JButton btnAlmacen = new JButton("Almacén");
             btnAlmacen.setAlignmentX(Component.CENTER_ALIGNMENT);
             btnAlmacen.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             btnAlmacen.addActionListener(e -> {
                 dispose();
-                new SistemaPrincipal(usuario, rol, "almacen").setVisible(true);
+                new SistemaPrincipal(usuario, rol, "almacen").setVisible(true);  // <--- Pasa el Enum aquí también
             });
             panelCenter.add(btnAlmacen);
             botonesVisibles.add(btnAlmacen);
             panelCenter.add(Box.createVerticalStrut(10));
         }
 
-        if (rol.equalsIgnoreCase("administrador") || rol.equalsIgnoreCase("ti")) {
+        // Área TI: solo para admin
+        if (Permisos.puedeEntrarTI(rol)) {
             JButton btnTI = new JButton("TI");
             btnTI.setAlignmentX(Component.CENTER_ALIGNMENT);
             btnTI.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             btnTI.addActionListener(e -> {
                 dispose();
-                new SistemaPrincipal(usuario, rol, "ti").setVisible(true);
+                new SistemaPrincipal(usuario, rol, "ti").setVisible(true); // <--- Enum aquí también
             });
             panelCenter.add(btnTI);
             botonesVisibles.add(btnTI);
@@ -95,7 +89,7 @@ public class SelectorDeArea extends JFrame {
 
         add(panelCenter, BorderLayout.CENTER);
 
-        // --- Click automático si solo un botón ---
+        // Click automático si solo hay un área
         SwingUtilities.invokeLater(() -> {
             if (botonesVisibles.size() == 1) {
                 botonesVisibles.get(0).doClick();
@@ -105,12 +99,7 @@ public class SelectorDeArea extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() ->
-            new SelectorDeArea("usuarioEjemplo", "administrador").setVisible(true)
+            new SelectorDeArea("usuarioEjemplo", RolUsuario.ADMINISTRADOR).setVisible(true)
         );
     }
 }
-
-/*
- * CAMBIO: El bucle de recolorado ahora pinta TODOS los píxeles no transparentes de blanco,
- * asegurando que TODO el logo (incluyendo "TEXTIL") aparezca completamente blanco.
- */

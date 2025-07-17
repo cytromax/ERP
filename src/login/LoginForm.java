@@ -4,6 +4,7 @@ import Main.newpackage.SelectorDeArea;
 import Main.newpackage.SistemaPrincipal;
 import conexion.ConexionDB;
 import org.mindrot.jbcrypt.BCrypt;
+import Main.newpackage.RolUsuario;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -37,7 +38,7 @@ public class LoginForm extends JFrame {
         ));
         loginPanel.setLayout(new BoxLayout(loginPanel, BoxLayout.Y_AXIS));
 
-        // Carga y recolor del logo con umbral de luminancia
+        // Logo con recolor
         JLabel lblLogo = new JLabel();
         lblLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
         URL logoUrl = getClass().getResource("/images/viveza-textil-logo.png");
@@ -45,7 +46,6 @@ public class LoginForm extends JFrame {
             try {
                 BufferedImage img = ImageIO.read(logoUrl);
                 int w = img.getWidth(), h = img.getHeight();
-                // Umbral de luminancia para considerar negro oscuro
                 double threshold = 50.0;
                 for (int y = 0; y < h; y++) {
                     for (int x = 0; x < w; x++) {
@@ -54,16 +54,13 @@ public class LoginForm extends JFrame {
                         int r = (pixel >> 16) & 0xFF;
                         int g = (pixel >> 8) & 0xFF;
                         int b = pixel & 0xFF;
-                        // Luminancia perceptual
                         double lum = 0.2126*r + 0.7152*g + 0.0722*b;
                         if (lum < threshold) {
-                            // Pinta de blanco manteniendo alfa
                             int white = (alpha << 24) | 0x00FFFFFF;
                             img.setRGB(x, y, white);
                         }
                     }
                 }
-                // Escalado proporcional
                 int maxW = 180, maxH = 80;
                 double scale = Math.min((double) maxW / w, (double) maxH / h);
                 int newW = (int) (w * scale), newH = (int) (h * scale);
@@ -177,12 +174,17 @@ public class LoginForm extends JFrame {
         }
     }
 
-    private void openNext(String rol) {
+    private void openNext(String rolString) {
+        // Guarda el usuario y el rol en la sesión global
+        Main.newpackage.SessionManager.setUsuario(txtUsuario.getText().trim(), rolString);
+
+        RolUsuario rolEnum = RolUsuario.fromString(rolString);
+
         dispose();
-        if (rol.equalsIgnoreCase("administrador")) {
-            new SelectorDeArea(txtUsuario.getText(), rol).setVisible(true);
+        if (rolEnum == RolUsuario.ADMINISTRADOR) {
+            new SelectorDeArea(txtUsuario.getText(), rolEnum).setVisible(true);
         } else {
-            new SistemaPrincipal(txtUsuario.getText(), rol, "almacen").setVisible(true);
+            new SistemaPrincipal(txtUsuario.getText(), rolEnum, "almacen").setVisible(true);
         }
     }
 

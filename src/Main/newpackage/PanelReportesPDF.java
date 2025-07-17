@@ -12,9 +12,9 @@ public class PanelReportesPDF extends JPanel {
     private DefaultTableModel modelo;
 
     private String usuario;
-    private String rol;
+    private RolUsuario rol; // ← Cambiado a Enum
 
-    public PanelReportesPDF(String usuario, String rol) {
+    public PanelReportesPDF(String usuario, RolUsuario rol) { // ← Enum aquí
         this.usuario = usuario;
         this.rol = rol;
 
@@ -32,6 +32,9 @@ public class PanelReportesPDF extends JPanel {
         btnAgregarPDF.setForeground(Color.WHITE);
         btnAgregarPDF.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnAgregarPDF.addActionListener(e -> agregarPDF());
+
+        // Ejemplo de permisos: solo admin puede agregar PDF (ajústalo a tus reglas)
+        btnAgregarPDF.setEnabled(rol == RolUsuario.ADMINISTRADOR);
 
         JPanel panelTop = new JPanel(new BorderLayout());
         panelTop.setOpaque(false);

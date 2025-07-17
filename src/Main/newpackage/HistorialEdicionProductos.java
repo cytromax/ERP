@@ -22,9 +22,9 @@ public class HistorialEdicionProductos extends JFrame {
     private JSpinner spinnerFechaHasta;
     private JButton btnFiltrar, btnExportarTodo, btnExportarSeleccion, btnEliminarSeleccion, btnSalir;
 
-    private String rolActual;
+    private RolUsuario rolActual;
 
-    public HistorialEdicionProductos(String rolActual) {
+    public HistorialEdicionProductos(RolUsuario rolActual) {
         this.rolActual = rolActual;
 
         setTitle("Historial de Edición de Productos");
@@ -230,7 +230,7 @@ public class HistorialEdicionProductos extends JFrame {
     }
 
     private void eliminarSeleccionados() {
-        if (!"administrador".equalsIgnoreCase(rolActual)) {
+        if (rolActual != RolUsuario.ADMINISTRADOR) {
             JOptionPane.showMessageDialog(this, "Solo los administradores pueden eliminar registros.");
             return;
         }

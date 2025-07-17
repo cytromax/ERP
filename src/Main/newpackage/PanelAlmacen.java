@@ -6,16 +6,16 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import Main.newpackage.RolUsuario;
 
 public class PanelAlmacen extends JPanel {
     private final String usuario;
-    private final String rol;
+    private final RolUsuario rolEnum;
 
-    public PanelAlmacen(String usuario, String rol) {
+    public PanelAlmacen(String usuario, RolUsuario rol) {
         this.usuario = usuario;
-        this.rol = rol;
+        this.rolEnum = rol;
 
-        // Configuración principal
         setBackground(new Color(28, 32, 36));
         setLayout(new BorderLayout());
 
@@ -28,27 +28,22 @@ public class PanelAlmacen extends JPanel {
             try {
                 BufferedImage img = ImageIO.read(logoUrl);
                 int w = img.getWidth(), h = img.getHeight();
-                
-                // Umbral alto para asegurar letras en blanco
                 double threshold = 200.0;
                 for (int y = 0; y < h; y++) {
                     for (int x = 0; x < w; x++) {
                         int pixel = img.getRGB(x, y);
                         int alpha = (pixel >> 24) & 0xFF;
-                        // Solo recolorea si es visible
                         if (alpha > 0) {
                             int r = (pixel >> 16) & 0xFF;
                             int g = (pixel >> 8) & 0xFF;
                             int b = pixel & 0xFF;
-                            double lum = 0.2126*r + 0.7152*g + 0.0722*b;
+                            double lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
                             if (lum < threshold) {
-                                // pinta de blanco, conserva alfa
                                 img.setRGB(x, y, (alpha << 24) | 0x00FFFFFF);
                             }
                         }
                     }
                 }
-                // Escalado proporcional: ancho máx 200, alto máx 60
                 double scale = Math.min(200.0 / w, 60.0 / h);
                 int newW = (int) (w * scale), newH = (int) (h * scale);
                 Image scaled = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
@@ -72,28 +67,24 @@ public class PanelAlmacen extends JPanel {
         int espaciado = 24;
         panelCentral.add(Box.createVerticalStrut(espaciado * 2));
 
-        if (rol.equalsIgnoreCase("administrador")) {
-    panelCentral.add(crearBotonOscuro("Productos", font,
-        e -> VerProductos.mostrarVentana(usuario, rol)
-    ));
-    panelCentral.add(Box.createVerticalStrut(espaciado));
-    panelCentral.add(crearBotonOscuro("Administración de Empleados", font,
-        e -> GestionUsuarios.mostrarVentana(rol)
-    ));
-    panelCentral.add(Box.createVerticalStrut(espaciado));
-    panelCentral.add(crearBotonOscuro("Alta de Usuario", font,
-        e -> AltaUsuarios.mostrarVentana()
-    ));
-    
-    panelCentral.add(Box.createVerticalStrut(espaciado));
-}
-else {
-            JLabel label = new JLabel("Sin permisos para ver productos.", SwingConstants.CENTER);
-            label.setForeground(new Color(190, 70, 70));
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-            label.setAlignmentX(Component.CENTER_ALIGNMENT);
-            panelCentral.add(label);
-            panelCentral.add(Box.createVerticalStrut(espaciado * 3));
+        // --- PERMISOS ---
+        // Solo "Productos" para TRABAJADOR y ADMINISTRADOR
+        panelCentral.add(crearBotonOscuro("Productos", font,
+            e -> VerProductos.mostrarVentana(usuario, rolEnum)
+        ));
+        panelCentral.add(Box.createVerticalStrut(espaciado));
+
+        // Si es ADMINISTRADOR, agrega las demás opciones
+        if (rolEnum == RolUsuario.ADMINISTRADOR) {
+            panelCentral.add(crearBotonOscuro("Administración de Empleados", font,
+                e -> GestionUsuarios.mostrarVentana(rolEnum.name().toLowerCase())
+            ));
+            panelCentral.add(Box.createVerticalStrut(espaciado));
+            panelCentral.add(crearBotonOscuro("Alta de Usuario", font,
+                e -> AltaUsuarios.mostrarVentana(usuario, rolEnum)
+            ));
+            panelCentral.add(Box.createVerticalStrut(espaciado));
+            // Agrega más botones solo para administrador si necesitas
         }
 
         JScrollPane scrollPanel = new JScrollPane(panelCentral);
@@ -143,6 +134,6 @@ else {
 
     private void salirAlSelector() {
         SwingUtilities.getWindowAncestor(this).dispose();
-        new SelectorDeArea(usuario, rol).setVisible(true);
+        new SelectorDeArea(usuario, rolEnum).setVisible(true);
     }
 }

@@ -6,53 +6,64 @@ import java.sql.*;
 import conexion.ConexionDB;
 
 public class GestionProductos extends JFrame {
-    // --- INICIO: Singleton para evitar varias ventanas ---
-private static GestionProductos instanciaUnica = null;
+    private static GestionProductos instanciaUnica = null;
 
-public static void mostrarVentana() {
-    if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
-        instanciaUnica = new GestionProductos();
+    public static void mostrarVentana() {
+        if (instanciaUnica == null || !instanciaUnica.isDisplayable()) {
+            instanciaUnica = new GestionProductos();
+        }
+        instanciaUnica.setVisible(true);
+        instanciaUnica.toFront();
+        instanciaUnica.requestFocus();
     }
-    instanciaUnica.setVisible(true);
-    instanciaUnica.toFront();
-    instanciaUnica.requestFocus();
-}
-// --- FIN ---
 
-    private JTextField txtCodigo, txtModelo, txtCantidad, txtUnidad;
+    private JTextField txtCodigo, txtModelo, txtCantidad, txtUnidad, txtUbicacion, txtMinima;
+    private JComboBox<String> comboPrioridad;
+    private static final String[] PRIORIDADES = {"priorizado", "mas_pedidos", "stock_bajo", "stock_comprar", "normal"};
     private JButton btnAgregar;
 
     public GestionProductos() {
         setTitle("Agregar Producto");
-        setSize(400, 250);
+        setSize(400, 340);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         initUI();
     }
 
     private void initUI() {
-        JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
+        JPanel panel = new JPanel(new GridLayout(8, 2, 10, 10));
 
         txtCodigo = new JTextField();
         txtModelo = new JTextField();
         txtCantidad = new JTextField();
         txtUnidad = new JTextField();
+        txtUbicacion = new JTextField();
+        txtMinima = new JTextField();
+        comboPrioridad = new JComboBox<>(PRIORIDADES);
         btnAgregar = new JButton("Agregar Producto");
 
         panel.add(new JLabel("Código de barras:"));
         panel.add(txtCodigo);
-        panel.add(new JLabel("Modelo:"));
+        panel.add(new JLabel("Descripción:"));
         panel.add(txtModelo);
         panel.add(new JLabel("Cantidad:"));
         panel.add(txtCantidad);
         panel.add(new JLabel("Unidad:"));
         panel.add(txtUnidad);
-        panel.add(new JLabel());
+        panel.add(new JLabel("Ubicación:"));
+        panel.add(txtUbicacion);
+        panel.add(new JLabel("Existencia Mínima:"));
+        panel.add(txtMinima);
+        panel.add(new JLabel("Prioridad:"));
+        panel.add(comboPrioridad);
+
+        panel.add(new JLabel()); // Espacio vacío
         panel.add(btnAgregar);
 
         btnAgregar.addActionListener(e -> agregarProducto());
 
-        add(panel);
+        add(panel, BorderLayout.CENTER);
+
         JButton btnSalir = new JButton("Salir");
         btnSalir.addActionListener(e -> dispose());
 
@@ -66,15 +77,19 @@ public static void mostrarVentana() {
         String modelo = txtModelo.getText().trim();
         String cantidadStr = txtCantidad.getText().trim();
         String unidad = txtUnidad.getText().trim();
+        String ubicacion = txtUbicacion.getText().trim();
+        String minimaStr = txtMinima.getText().trim();
+        String prioridad = (String) comboPrioridad.getSelectedItem();
 
-        if (codigo.isEmpty() || modelo.isEmpty() || cantidadStr.isEmpty() || unidad.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor, completa todos los campos obligatorios.");
+        if (codigo.isEmpty() || modelo.isEmpty() || cantidadStr.isEmpty() ||
+            unidad.isEmpty() || ubicacion.isEmpty() || minimaStr.isEmpty() || prioridad.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, completa todos los campos.");
             return;
         }
 
         try {
-            // Si existencia es NUMERIC (decimal) en tu tabla, usa Double.parseDouble, si es INTEGER, usa Integer.parseInt
-            double cantidad = Double.parseDouble(cantidadStr); // cambia a int si tu columna es INTEGER
+            double cantidad = Double.parseDouble(cantidadStr);
+            double minima = Double.parseDouble(minimaStr);
 
             Connection con = ConexionDB.conectar();
             if (con == null) {
@@ -82,12 +97,15 @@ public static void mostrarVentana() {
                 return;
             }
 
-            String sql = "INSERT INTO productos (codigo_barras, modelo, existencia, unidad) VALUES (?, ?, ?, ?)";
+            String sql = "INSERT INTO productos (codigo_barras, modelo, existencia, unidad, ubicacion, existencia_minima, prioridad) VALUES (?, ?, ?, ?, ?, ?, ?::prioridad_tipo)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, codigo);
             ps.setString(2, modelo);
-            ps.setDouble(3, cantidad); // usa setInt si tu columna es INTEGER
+            ps.setDouble(3, cantidad);
             ps.setString(4, unidad);
+            ps.setString(5, ubicacion);
+            ps.setDouble(6, minima);
+            ps.setString(7, prioridad);
             ps.executeUpdate();
 
             JOptionPane.showMessageDialog(this, "Producto agregado exitosamente.");
@@ -96,8 +114,12 @@ public static void mostrarVentana() {
             txtModelo.setText("");
             txtCantidad.setText("");
             txtUnidad.setText("");
+            txtUbicacion.setText("");
+            txtMinima.setText("");
+            comboPrioridad.setSelectedIndex(PRIORIDADES.length - 1);
+
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "La cantidad debe ser un número.");
+            JOptionPane.showMessageDialog(this, "La cantidad y la existencia mínima deben ser números.");
         } catch (SQLException ex) {
             if (ex.getMessage().contains("duplicate key")) {
                 JOptionPane.showMessageDialog(this, "El código de barras ya existe.");
@@ -105,7 +127,7 @@ public static void mostrarVentana() {
                 JOptionPane.showMessageDialog(this, "Error al agregar producto: " + ex.getMessage());
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al agregar producto: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Error inesperado: " + ex.getMessage());
         }
     }
 }

@@ -1,6 +1,7 @@
 package Main.newpackage;
 
 import conexion.ConexionDB;
+import Main.newpackage.SessionManager;
 import Main.newpackage.Components.EmpleadoScanField;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -56,7 +57,7 @@ public class RecepcionMercancia extends JFrame {
                 if (debounceTimer != null) {
                     debounceTimer.stop();
                 }
-                debounceTimer = new Timer(250, e -> {
+                debounceTimer = new Timer(1000, e -> {
                     String texto = txtBuscarProducto.getText().trim();
                     if (!texto.isEmpty()) {
                         buscarProductoPorCodigo(texto);
@@ -98,50 +99,48 @@ public class RecepcionMercancia extends JFrame {
         });
 
         // --- Panel inferior: proveedor, empleado que recibe y finalizar ---
-  
         JPanel panelInferior = new JPanel(new GridBagLayout());
-panelInferior.setBackground(new Color(38, 41, 48));
-GridBagConstraints gbc = new GridBagConstraints();
-gbc.insets = new Insets(4, 10, 4, 10);
-gbc.gridy = 0;
-gbc.fill = GridBagConstraints.HORIZONTAL;
+        panelInferior.setBackground(new Color(38, 41, 48));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 10, 4, 10);
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-// Proveedor
-gbc.gridx = 0; gbc.weightx = 0;
-JLabel lblProveedor = new JLabel("Proveedor:");
-lblProveedor.setForeground(new Color(200, 230, 255));
-panelInferior.add(lblProveedor, gbc);
+        // Proveedor
+        gbc.gridx = 0; gbc.weightx = 0;
+        JLabel lblProveedor = new JLabel("Proveedor:");
+        lblProveedor.setForeground(new Color(200, 230, 255));
+        panelInferior.add(lblProveedor, gbc);
 
-gbc.gridx = 1; gbc.weightx = 1;
-txtProveedor = new JTextField();
-panelInferior.add(txtProveedor, gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        txtProveedor = new JTextField();
+        panelInferior.add(txtProveedor, gbc);
 
-// Empleado que recibe
-gbc.gridx = 2; gbc.weightx = 0;
-JLabel lblEmpleado = new JLabel("Empleado que recibe:");
-lblEmpleado.setForeground(new Color(200, 230, 255));
-panelInferior.add(lblEmpleado, gbc);
+        // Empleado que recibe
+        gbc.gridx = 2; gbc.weightx = 0;
+        JLabel lblEmpleado = new JLabel("Empleado que recibe:");
+        lblEmpleado.setForeground(new Color(200, 230, 255));
+        panelInferior.add(lblEmpleado, gbc);
 
-gbc.gridx = 3; gbc.weightx = 1;
-campoEmpleadoRecibio = new EmpleadoScanField();
-campoEmpleadoRecibio.setEmpleados(obtenerListaEmpleados());
-panelInferior.add(campoEmpleadoRecibio, gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        campoEmpleadoRecibio = new EmpleadoScanField();
+        campoEmpleadoRecibio.setEmpleados(obtenerListaEmpleados());
+        panelInferior.add(campoEmpleadoRecibio, gbc);
 
-// Segunda fila para botones
-gbc.gridy = 1; gbc.gridx = 1; gbc.weightx = 0; gbc.gridwidth = 1;
-JButton btnFinalizar = new JButton("Finalizar recepción");
-btnFinalizar.setBackground(new Color(22, 160, 100));
-btnFinalizar.setForeground(Color.WHITE);
-btnFinalizar.addActionListener(e -> finalizarRecepcion());
-panelInferior.add(btnFinalizar, gbc);
+        // Segunda fila para botones
+        gbc.gridy = 1; gbc.gridx = 1; gbc.weightx = 0; gbc.gridwidth = 1;
+        JButton btnFinalizar = new JButton("Finalizar recepción");
+        btnFinalizar.setBackground(new Color(22, 160, 100));
+        btnFinalizar.setForeground(Color.WHITE);
+        btnFinalizar.addActionListener(e -> finalizarRecepcion());
+        panelInferior.add(btnFinalizar, gbc);
 
-gbc.gridx = 2; gbc.gridwidth = 1;
-JButton btnLimpiar = new JButton("Limpiar");
-btnLimpiar.addActionListener(e -> limpiarTodo());
-panelInferior.add(btnLimpiar, gbc);
+        gbc.gridx = 2; gbc.gridwidth = 1;
+        JButton btnLimpiar = new JButton("Limpiar");
+        btnLimpiar.addActionListener(e -> limpiarTodo());
+        panelInferior.add(btnLimpiar, gbc);
 
-add(panelInferior, BorderLayout.SOUTH);
-
+        add(panelInferior, BorderLayout.SOUTH);
 
         // Buscar producto con Enter
         txtBuscarProducto.addActionListener(e -> buscarProducto());
@@ -305,95 +304,94 @@ add(panelInferior, BorderLayout.SOUTH);
     }
 
     private void finalizarRecepcion() {
-    if (carrito.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "No hay productos en la recepción.");
-        return;
-    }
-    String proveedor = txtProveedor.getText().trim();
-    if (proveedor.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "Debes capturar el proveedor.");
-        txtProveedor.requestFocusInWindow();
-        return;
-    }
-    // Validar empleado que recibe
-    EmpleadoScanField.EmpleadoItem empleadoRecibio = campoEmpleadoRecibio.getEmpleadoSeleccionado();
-    if (empleadoRecibio == null) {
-        JOptionPane.showMessageDialog(this, "Debes escanear un empleado que recibe.");
-        campoEmpleadoRecibio.requestFocusInWindow();
-        return;
-    }
-    int idEmpleadoRecibio = empleadoRecibio.id;
+        if (carrito.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay productos en la recepción.");
+            return;
+        }
+        String proveedor = txtProveedor.getText().trim();
+        if (proveedor.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Debes capturar el proveedor.");
+            txtProveedor.requestFocusInWindow();
+            return;
+        }
+        // Validar empleado que recibe
+        EmpleadoScanField.EmpleadoItem empleadoRecibio = campoEmpleadoRecibio.getEmpleadoSeleccionado();
+        if (empleadoRecibio == null) {
+            JOptionPane.showMessageDialog(this, "Debes escanear un empleado que recibe.");
+            campoEmpleadoRecibio.requestFocusInWindow();
+            return;
+        }
+        int idEmpleadoRecibio = empleadoRecibio.id;
 
-    // ---- Nuevo: Preguntar por número de pedido ----
-    String numeroPedido = "";
-    int respuesta = JOptionPane.showConfirmDialog(this,
-            "¿Cuentas con número de pedido? (Si no tienes, presiona No)",
-            "Número de Pedido", JOptionPane.YES_NO_OPTION);
+        // ---- Nuevo: Preguntar por número de pedido ----
+        String numeroPedido = "";
+        int respuesta = JOptionPane.showConfirmDialog(this,
+                "¿Cuentas con número de pedido? (Si no tienes, presiona No)",
+                "Número de Pedido", JOptionPane.YES_NO_OPTION);
 
-    if (respuesta == JOptionPane.YES_OPTION) {
-        numeroPedido = JOptionPane.showInputDialog(this, "Ingresa el número de pedido:", "Número de Pedido", JOptionPane.QUESTION_MESSAGE);
-        if (numeroPedido == null) numeroPedido = ""; // Si cancela, dejarlo vacío
-    }
-    // Si seleccionó NO, numeroPedido queda en blanco
+        if (respuesta == JOptionPane.YES_OPTION) {
+            numeroPedido = JOptionPane.showInputDialog(this, "Ingresa el número de pedido:", "Número de Pedido", JOptionPane.QUESTION_MESSAGE);
+            if (numeroPedido == null) numeroPedido = ""; // Si cancela, dejarlo vacío
+        }
+        // Si seleccionó NO, numeroPedido queda en blanco
 
-    try (Connection con = ConexionDB.conectar()) {
-        con.setAutoCommit(false);
+        try (Connection con = ConexionDB.conectar()) {
+            con.setAutoCommit(false);
 
-        for (ItemRecepcion item : carrito) {
-            int existenciaAntes = 0;
-            try (PreparedStatement ps = con.prepareStatement(
-                    "SELECT existencia FROM productos WHERE id = ?")) {
-                ps.setInt(1, item.id);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        existenciaAntes = rs.getInt("existencia");
+            for (ItemRecepcion item : carrito) {
+                int existenciaAntes = 0;
+                try (PreparedStatement ps = con.prepareStatement(
+                        "SELECT existencia FROM productos WHERE id = ?")) {
+                    ps.setInt(1, item.id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            existenciaAntes = rs.getInt("existencia");
+                        }
                     }
                 }
-            }
 
-            int existenciaDespues = existenciaAntes + item.cantidad;
+                int existenciaDespues = existenciaAntes + item.cantidad;
 
-            try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO movimientos "
-                    + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, proveedor, id_empleado, numero_pedido) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)")) {
-                ps.setInt(1, item.id);
-                ps.setInt(2, existenciaAntes);
-                ps.setString(3, "entrada");
-                ps.setInt(4, item.cantidad);
-                ps.setInt(5, existenciaDespues);
-                ps.setString(6, System.getProperty("user.name"));
-                ps.setString(7, proveedor);
-                ps.setInt(8, idEmpleadoRecibio);
-                if (numeroPedido == null || numeroPedido.trim().isEmpty()) {
-                    ps.setNull(9, java.sql.Types.VARCHAR);
-                } else {
-                    ps.setString(9, numeroPedido.trim());
+                try (PreparedStatement ps = con.prepareStatement(
+                        "INSERT INTO movimientos "
+                        + "(id_producto, existencia_antes, tipo, cantidad, existencia_despues, usuario, fecha, proveedor, id_empleado, numero_pedido) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)")) {
+                    ps.setInt(1, item.id);
+                    ps.setInt(2, existenciaAntes);
+                    ps.setString(3, "entrada");
+                    ps.setInt(4, item.cantidad);
+                    ps.setInt(5, existenciaDespues);
+                    ps.setString(6, SessionManager.getUsuario()); // <--- USUARIO LOGUEADO DE SESIÓN
+                    ps.setString(7, proveedor);
+                    ps.setInt(8, idEmpleadoRecibio);
+                    if (numeroPedido == null || numeroPedido.trim().isEmpty()) {
+                        ps.setNull(9, java.sql.Types.VARCHAR);
+                    } else {
+                        ps.setString(9, numeroPedido.trim());
+                    }
+                    ps.executeUpdate();
                 }
-                ps.executeUpdate();
+
+                try (PreparedStatement ps2 = con.prepareStatement(
+                        "UPDATE productos SET existencia = ? WHERE id = ?")) {
+                    ps2.setInt(1, existenciaDespues);
+                    ps2.setInt(2, item.id);
+                    ps2.executeUpdate();
+                }
             }
 
-            try (PreparedStatement ps2 = con.prepareStatement(
-                    "UPDATE productos SET existencia = ? WHERE id = ?")) {
-                ps2.setInt(1, existenciaDespues);
-                ps2.setInt(2, item.id);
-                ps2.executeUpdate();
-            }
+            con.commit();
+            JOptionPane.showMessageDialog(this,
+                    "Recepción registrada correctamente.\nProveedor: " + proveedor +
+                            (numeroPedido == null || numeroPedido.trim().isEmpty() ? "" : "\nFolio: " + numeroPedido)
+            );
+            limpiarTodo();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al registrar la entrada: " + ex.getMessage());
         }
-
-        con.commit();
-        JOptionPane.showMessageDialog(this, 
-            "Recepción registrada correctamente.\nProveedor: " + proveedor +
-            (numeroPedido == null || numeroPedido.trim().isEmpty() ? "" : "\nFolio: " + numeroPedido)
-        );
-        limpiarTodo();
-
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Error al registrar la entrada: " + ex.getMessage());
     }
-}
-
 
     private void limpiarTodo() {
         txtBuscarProducto.setText("");

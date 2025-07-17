@@ -55,12 +55,12 @@ public class HistorialMovimientosPanel extends JPanel {
 
         panelFiltros.add(new JLabel("Fecha desde:"));
         spinnerFechaDesde = new JSpinner(new SpinnerDateModel(hoy(), null, null, Calendar.DAY_OF_MONTH));
-        spinnerFechaDesde.setEditor(new JSpinner.DateEditor(spinnerFechaDesde, "yyyy-MM-dd"));
+        spinnerFechaDesde.setEditor(new JSpinner.DateEditor(spinnerFechaDesde, "dd-MM-yyyy"));
         panelFiltros.add(spinnerFechaDesde);
 
         panelFiltros.add(new JLabel("Fecha hasta:"));
         spinnerFechaHasta = new JSpinner(new SpinnerDateModel(hoy(), null, null, Calendar.DAY_OF_MONTH));
-        spinnerFechaHasta.setEditor(new JSpinner.DateEditor(spinnerFechaHasta, "yyyy-MM-dd"));
+        spinnerFechaHasta.setEditor(new JSpinner.DateEditor(spinnerFechaHasta, "dd-MM-yyyy"));
         panelFiltros.add(spinnerFechaHasta);
 
         btnFiltrar = new JButton("Filtrar");
@@ -129,7 +129,7 @@ public class HistorialMovimientosPanel extends JPanel {
         Date fechaDesde = (Date) spinnerFechaDesde.getValue();
         Date fechaHasta = (Date) spinnerFechaHasta.getValue();
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 
         modelo.setRowCount(0);
 

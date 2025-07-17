@@ -38,12 +38,12 @@ public class HistorialEdicionesProductosPanel extends JPanel {
 
         panelFiltros.add(new JLabel("Fecha desde:"));
         spinnerFechaDesde = new JSpinner(new SpinnerDateModel());
-        spinnerFechaDesde.setEditor(new JSpinner.DateEditor(spinnerFechaDesde, "yyyy-MM-dd"));
+        spinnerFechaDesde.setEditor(new JSpinner.DateEditor(spinnerFechaDesde, "dd-MM-yyyy"));
         panelFiltros.add(spinnerFechaDesde);
 
         panelFiltros.add(new JLabel("Fecha hasta:"));
         spinnerFechaHasta = new JSpinner(new SpinnerDateModel());
-        spinnerFechaHasta.setEditor(new JSpinner.DateEditor(spinnerFechaHasta, "yyyy-MM-dd"));
+        spinnerFechaHasta.setEditor(new JSpinner.DateEditor(spinnerFechaHasta, "dd-MM-yyyy-"));
         panelFiltros.add(spinnerFechaHasta);
 
         btnFiltrar = new JButton("Filtrar");
@@ -102,7 +102,7 @@ public class HistorialEdicionesProductosPanel extends JPanel {
         Date fechaDesde = (Date) spinnerFechaDesde.getValue();
         Date fechaHasta = (Date) spinnerFechaHasta.getValue();
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         String fechaDesdeStr = sdf.format(fechaDesde);
         String fechaHastaStr = sdf.format(fechaHasta);
 
@@ -131,7 +131,7 @@ public class HistorialEdicionesProductosPanel extends JPanel {
 
             ResultSet rs = ps.executeQuery();
 
-            SimpleDateFormat formatoFecha = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            SimpleDateFormat formatoFecha = new SimpleDateFormat("dd-MM-yyyy HH:mm");
             while (rs.next()) {
                 modelo.addRow(new Object[]{
                     rs.getInt("id"),

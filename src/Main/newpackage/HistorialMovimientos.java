@@ -21,7 +21,7 @@ public class HistorialMovimientos extends JFrame {
         // Cada tab usa el panel reutilizable y solo cambia el tipo
         tabs.addTab("Entradas", new HistorialMovimientosPanel("entrada"));
         tabs.addTab("Salidas",  new HistorialMovimientosPanel("salida"));
-        tabs.addTab("Todos",    new HistorialMovimientosPanel("todos"));
+       
 
         add(tabs, BorderLayout.CENTER);
     }

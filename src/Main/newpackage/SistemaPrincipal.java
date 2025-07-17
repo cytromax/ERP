@@ -9,8 +9,11 @@ import conexion.ConexionDB;
 public class SistemaPrincipal extends JFrame {
     private JPanel panelContenido;
     private CardLayout layoutCards;
+    private RolUsuario rolActual; // Ahora el rol es tipo RolUsuario
 
-    public SistemaPrincipal(String usuario, String rol, String areaInicial) {
+    public SistemaPrincipal(String usuario, RolUsuario rol, String areaInicial) {
+        this.rolActual = rol; // Guardar el rol para uso interno
+
         setTitle("Sistema - Área: " + areaInicial + " - " + usuario);
         setSize(900, 600);
         setLocationRelativeTo(null);
@@ -25,10 +28,11 @@ public class SistemaPrincipal extends JFrame {
             con = ConexionDB.conectar();
         }
 
-        panelContenido.add(new PanelAlmacen(usuario, rol), "almacen");
+        // Ahora pasamos el rol tipado a los paneles internos:
+        panelContenido.add(new PanelAlmacen(usuario, rolActual), "almacen");
 
         if (con != null) {
-            panelContenido.add(new PanelTI(con, usuario, rol), "ti");
+            panelContenido.add(new PanelTI(con, usuario, rolActual), "ti");
         } else {
             JPanel panelError = new JPanel(new BorderLayout());
             JLabel lblError = new JLabel("No se pudo conectar a la base de datos TI", SwingConstants.CENTER);
