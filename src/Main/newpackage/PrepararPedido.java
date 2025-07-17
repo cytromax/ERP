@@ -174,7 +174,7 @@ public class PrepararPedido extends JFrame {
             return;
         }
         try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(
-                "SELECT id, codigo_barras, modelo FROM productos WHERE codigo_barras = ? OR modelo ILIKE ?")) {
+                "SELECT id, codigo_barras, modelo, unidad FROM productos WHERE codigo_barras = ? OR modelo ILIKE ?")) {
             ps.setString(1, query);
             ps.setString(2, "%" + query + "%");
             try (ResultSet rs = ps.executeQuery()) {
@@ -182,14 +182,49 @@ public class PrepararPedido extends JFrame {
                     int id = rs.getInt("id");
                     String codigo = rs.getString("codigo_barras");
                     String modelo = rs.getString("modelo");
-                    String cantidadStr = JOptionPane.showInputDialog(this,
-                            "Producto: " + modelo + " (" + codigo + ")\nIngresa la cantidad:", "Cantidad", JOptionPane.PLAIN_MESSAGE);
-                    if (cantidadStr != null && !cantidadStr.trim().isEmpty()) {
-                        int cantidad = Integer.parseInt(cantidadStr.trim());
-                        if (cantidad <= 0) {
-                            throw new NumberFormatException();
+                    String unidad = rs.getString("unidad");
+
+                    JTextField cantidadField = new JTextField(8);
+                    cantidadField.setFont(new Font("Segoe UI", Font.BOLD, 18));
+                    JPanel panel = new JPanel(new FlowLayout());
+                    panel.add(new JLabel("Cantidad para: " + modelo + " (" + codigo + "):"));
+                    panel.add(cantidadField);
+                    panel.add(new JLabel(unidad != null ? unidad : ""));
+
+                    JOptionPane optionPane = new JOptionPane(panel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+                    JDialog dialog = optionPane.createDialog(this, "Cantidad");
+                    dialog.setModal(true);
+
+                    final boolean[] cantidadIngresada = {false};
+                    cantidadField.addActionListener(ev -> {
+                        cantidadIngresada[0] = true;
+                        dialog.setVisible(false);
+                        dialog.dispose();
+                        agregarYContinuarPedido(id, codigo, modelo, cantidadField.getText());
+                    });
+
+                    dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                        @Override
+                        public void windowOpened(java.awt.event.WindowEvent e) {
+                            cantidadField.requestFocusInWindow();
                         }
-                        agregarAlPedido(id, codigo, modelo, cantidad);
+                    });
+
+                    dialog.setVisible(true);
+
+                    if (!cantidadIngresada[0]) {
+                        Object selectedValue = optionPane.getValue();
+                        boolean okPressed = false;
+                        if (selectedValue != null) {
+                            if (selectedValue instanceof Integer) {
+                                okPressed = ((Integer) selectedValue) == JOptionPane.OK_OPTION;
+                            } else if (selectedValue instanceof String) {
+                                okPressed = ((String) selectedValue).equalsIgnoreCase("OK");
+                            }
+                        }
+                        if (okPressed) {
+                            agregarYContinuarPedido(id, codigo, modelo, cantidadField.getText());
+                        }
                     }
                 } else {
                     JOptionPane.showMessageDialog(this, "Producto no encontrado.");
@@ -204,24 +239,23 @@ public class PrepararPedido extends JFrame {
 
     private void buscarProductoPorCodigo(String codigo) {
         try (Connection con = ConexionDB.conectar(); PreparedStatement ps = con.prepareStatement(
-                "SELECT id, codigo_barras, modelo FROM productos WHERE codigo_barras = ?")) {
+                "SELECT id, codigo_barras, modelo, unidad FROM productos WHERE codigo_barras = ?")) {
             ps.setString(1, codigo);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int id = rs.getInt("id");
                     String cod = rs.getString("codigo_barras");
                     String modelo = rs.getString("modelo");
+                    String unidad = rs.getString("unidad");
 
                     JTextField cantidadField = new JTextField(8);
                     cantidadField.setFont(new Font("Segoe UI", Font.BOLD, 18));
                     JPanel panel = new JPanel(new FlowLayout());
                     panel.add(new JLabel("Cantidad para: " + modelo + " (" + cod + "):"));
                     panel.add(cantidadField);
+                    panel.add(new JLabel(unidad != null ? unidad : ""));
 
-                    JOptionPane optionPane = new JOptionPane(panel,
-                            JOptionPane.PLAIN_MESSAGE,
-                            JOptionPane.OK_CANCEL_OPTION);
-
+                    JOptionPane optionPane = new JOptionPane(panel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
                     JDialog dialog = optionPane.createDialog(this, "Cantidad");
                     dialog.setModal(true);
 
